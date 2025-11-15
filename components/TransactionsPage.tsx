@@ -1,0 +1,228 @@
+import React, { useEffect, useRef, useState } from 'react';
+import type { Card, Transaction } from '../data/mockData';
+
+interface TransactionsPageProps {
+    cards: Card[];
+    transactions: Transaction[];
+    selectedCardId: number | null;
+    setSelectedCardId: (id: number | null) => void;
+    selectedTransactionId: number | string | null;
+    setSelectedTransactionId: (id: number | string | null) => void;
+    onAddTransactionClick: (cardId: number | null) => void;
+    onEditTransaction: (id: number | string) => void;
+    onDeleteTransaction: (id: number | string) => void;
+}
+
+const getFormattedDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const isSameDay = (d1: Date, d2: Date) => {
+        return d1.getFullYear() === d2.getFullYear() &&
+               d1.getMonth() === d2.getMonth() &&
+               d1.getDate() === d2.getDate();
+    }
+
+    if (isSameDay(date, today)) return 'Heute';
+    if (isSameDay(date, yesterday)) return 'Gestern';
+
+    const options: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric', year: 'numeric' };
+    return date.toLocaleDateString('de-DE', options);
+};
+
+const TransactionIcon: React.FC<{ transaction: Transaction }> = ({ transaction }) => {
+    let iconName: string, iconColor: string, bgColor: string;
+
+    if (transaction.type === 'transfer') {
+        iconName = 'sync_alt';
+        iconColor = 'text-blue-400';
+        bgColor = 'bg-blue-500/10';
+    } else if (transaction.amount > 0) {
+        iconName = 'arrow_upward';
+        iconColor = 'text-brand-accent-green';
+        bgColor = 'bg-green-500/10';
+    } else {
+        iconName = 'arrow_downward';
+        iconColor = 'text-brand-accent-red';
+        bgColor = 'bg-red-500/10';
+    }
+
+    return (
+        <div className={`flex items-center justify-center w-8 h-8 rounded-full ${bgColor}`}>
+            <span className={`material-symbols-outlined ${iconColor}`} style={{ fontSize: '20px' }}>{iconName}</span>
+        </div>
+    );
+}
+
+const TransactionsPage: React.FC<TransactionsPageProps> = ({ cards, transactions, selectedCardId, setSelectedCardId, selectedTransactionId, setSelectedTransactionId, onAddTransactionClick, onEditTransaction, onDeleteTransaction }) => {
+    const transactionRefs = useRef<Map<number | string, HTMLDivElement | null>>(new Map());
+    const [openMenuId, setOpenMenuId] = useState<number | string | null>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (selectedTransactionId) {
+            const element = transactionRefs.current.get(selectedTransactionId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                element.classList.add('bg-purple-500/20');
+
+                const timer = setTimeout(() => {
+                    element.classList.remove('bg-purple-500/20');
+                    setSelectedTransactionId(null);
+                }, 2500);
+
+                return () => clearTimeout(timer);
+            } else {
+                setSelectedTransactionId(null);
+            }
+        }
+    }, [selectedTransactionId, setSelectedTransactionId]);
+    
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+          if (openMenuId !== null && menuRef.current && !menuRef.current.contains(event.target as Node)) {
+            setOpenMenuId(null);
+          }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+          document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [openMenuId]);
+
+    const filteredTransactions = selectedCardId 
+        ? transactions.filter(t => t.cardId === selectedCardId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        : [];
+
+    // FIX: Explicitly type the initial value for `reduce` to ensure TypeScript correctly infers the accumulator's type as `Record<string, Transaction[]>`. This resolves an error where the `.map` property did not exist on the result of `Object.entries`.
+    const groupedTransactions = filteredTransactions.reduce((acc, transaction) => {
+        const date = transaction.date;
+        if (!acc[date]) {
+            acc[date] = [];
+        }
+        acc[date].push(transaction);
+        return acc;
+    }, {} as Record<string, Transaction[]>);
+
+    return (
+        <main className="mt-8 animate-fade-in">
+            <h1 className="text-3xl font-bold text-white mb-6">Transaktionen</h1>
+            
+            <div className="bg-brand-surface p-6 rounded-3xl">
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-lg font-semibold text-white">Karte auswählen</h2>
+                    <button 
+                      onClick={() => onAddTransactionClick(selectedCardId)}
+                      disabled={!selectedCardId}
+                      className="flex items-center gap-1 bg-white text-black text-sm font-semibold px-3 py-1.5 rounded-full hover:bg-gray-200 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                      Neu <span className="material-symbols-outlined" style={{fontSize: '16px'}}>add</span>
+                    </button>
+                </div>
+                <div className="flex items-center gap-3 pb-6 border-b border-brand-surface-alt overflow-x-auto">
+                    {cards.map(card => (
+                        <button
+                            key={card.id}
+                            onClick={() => setSelectedCardId(card.id)}
+                            className={`flex-shrink-0 px-4 py-2 text-sm rounded-full transition-colors duration-300 ${
+                                selectedCardId === card.id
+                                    ? 'bg-white text-black font-semibold'
+                                    : 'bg-brand-surface-alt text-brand-text-secondary hover:text-white hover:bg-brand-surface-alt/70'
+                            }`}
+                        >
+                            {card.title} - **** {card.number.slice(-4)}
+                        </button>
+                    ))}
+                </div>
+
+                <div className="mt-6 space-y-4">
+                    {Object.keys(groupedTransactions).length > 0 ? (
+                        Object.entries(groupedTransactions).map(([date, transactionsOnDate]) => (
+                            <div key={date}>
+                                <h3 className="text-sm font-semibold text-brand-text-secondary mb-3">{getFormattedDate(date)}</h3>
+                                <div className="space-y-2">
+                                    {transactionsOnDate.map(t => (
+                                        <div 
+                                            key={t.id} 
+                                            ref={el => {
+                                                if (el) {
+                                                    transactionRefs.current.set(t.id, el);
+                                                } else {
+                                                    transactionRefs.current.delete(t.id);
+                                                }
+                                            }}
+                                            className="grid grid-cols-2 md:grid-cols-4 items-center p-3 -m-3 rounded-xl hover:bg-brand-surface-alt transition-all duration-1000"
+                                        >
+                                            <div className="col-span-1 md:col-span-2">
+                                                 <div className="flex items-center gap-3">
+                                                    <TransactionIcon transaction={t} />
+                                                    <div>
+                                                        <p className="font-medium">{t.name}</p>
+                                                        <p className="text-xs text-brand-text-secondary">{t.category}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="hidden md:block text-sm text-brand-text-secondary">
+                                                {new Date(t.date + 'T00:00:00').toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                                            </div>
+                                            <div className="relative flex items-center justify-end gap-2 text-right font-semibold">
+                                                <span className={t.amount > 0 ? 'text-brand-accent-green' : 'text-brand-text'}>
+                                                    {t.amount < 0 ? `-€${Math.abs(t.amount).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `+€${t.amount.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                                                </span>
+                                                 <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setOpenMenuId(openMenuId === t.id ? null : t.id);
+                                                  }}
+                                                  className="text-brand-text-secondary hover:text-white z-10 p-1 -m-1 rounded-full"
+                                                >
+                                                  <span className="material-symbols-outlined" style={{fontSize: '20px'}}>more_vert</span>
+                                                </button>
+                                                {openMenuId === t.id && (
+                                                  <div ref={menuRef} className="absolute top-full right-0 mt-2 bg-brand-surface-alt rounded-lg shadow-lg py-1 w-32 z-20 animate-fade-in-sm">
+                                                    {t.category !== 'Fixkosten' ? (
+                                                        <>
+                                                            <button onClick={(e) => { e.stopPropagation(); onEditTransaction(t.id); setOpenMenuId(null); }} className="w-full text-left px-3 py-1.5 text-sm text-white hover:bg-brand-surface flex items-center gap-2">
+                                                            <span className="material-symbols-outlined" style={{fontSize: '16px'}}>edit</span> Bearbeiten
+                                                            </button>
+                                                            <button onClick={(e) => { e.stopPropagation(); onDeleteTransaction(t.id); setOpenMenuId(null); }} className="w-full text-left px-3 py-1.5 text-sm text-red-400 hover:bg-brand-surface flex items-center gap-2">
+                                                            <span className="material-symbols-outlined" style={{fontSize: '16px'}}>delete</span> Löschen
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <p className="px-3 py-1.5 text-xs text-brand-text-secondary">Fixkosten-Transaktionen können nicht direkt bearbeitet werden.</p>
+                                                    )}
+                                                  </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="text-center py-12">
+                            <p className="text-brand-text-secondary">Keine Transaktionen für diese Karte gefunden.</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+            <style>{`
+                @keyframes fade-in {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
+                 @keyframes fade-in-sm {
+                  from { opacity: 0; transform: translateY(-5px); }
+                  to { opacity: 1; transform: translateY(0); }
+                }
+                .animate-fade-in-sm { animation: fade-in-sm 0.2s ease-out forwards; }
+            `}</style>
+        </main>
+    );
+}
+
+export default TransactionsPage;

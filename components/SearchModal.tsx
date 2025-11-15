@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import type { Transaction, Card } from '../data/mockData';
 
@@ -43,7 +42,7 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, transactions
             onClick={onClose}
         >
             <div 
-                className="bg-brand-surface w-full max-w-2xl h-full rounded-3xl shadow-2xl flex flex-col"
+                className="bg-brand-surface w-full max-w-2xl h-full rounded-3xl shadow-2xl flex flex-col border border-brand-surface-alt"
                 onClick={e => e.stopPropagation()}
             >
                 <div className="p-4 border-b border-brand-surface-alt flex items-center gap-4">
@@ -72,7 +71,7 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, transactions
                                 >
                                     <div className="col-span-2">
                                         <div>
-                                            <span className="font-medium">{t.name}</span>
+                                            <span className="font-medium block truncate" title={t.name}>{t.name}</span>
                                             <p className="text-xs text-brand-text-secondary">{getFormattedDate(t.date)} &bull; {card?.title}</p>
                                         </div>
                                     </div>

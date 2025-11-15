@@ -32,7 +32,6 @@ const ExpenseSplitChart: React.FC<ExpenseSplitChartProps> = ({ transactions, cur
   
   const totalExpense = monthlyExpenses.reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
-  // FIX: Explicitly type the initial value for `reduce` to ensure TypeScript correctly infers the accumulator's type as `Record<string, number>`. This resolves an arithmetic operation error where `item.value` was not being treated as a number.
   const expenseByCategory = monthlyExpenses.reduce((acc, t) => {
     const category = t.category || 'Sonstiges';
     acc[category] = (acc[category] || 0) + Math.abs(t.amount);
@@ -55,7 +54,7 @@ const ExpenseSplitChart: React.FC<ExpenseSplitChartProps> = ({ transactions, cur
   
   if (data.length === 0) {
     return (
-      <div className="bg-brand-surface p-6 rounded-3xl flex flex-col h-full">
+      <div className="bg-brand-surface p-6 rounded-3xl flex flex-col h-full border border-brand-surface-alt">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">Ausgabenverteilung</h3>
         </div>
@@ -67,7 +66,7 @@ const ExpenseSplitChart: React.FC<ExpenseSplitChartProps> = ({ transactions, cur
   }
 
   return (
-    <div className="bg-brand-surface p-6 rounded-3xl h-full flex flex-col">
+    <div className="bg-brand-surface p-6 rounded-3xl h-full flex flex-col border border-brand-surface-alt">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold">Ausgabenverteilung</h3>
       </div>
@@ -123,7 +122,8 @@ const ExpenseSplitChart: React.FC<ExpenseSplitChartProps> = ({ transactions, cur
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }}></div>
                     <span className={`transition-all duration-200 ${isDimmed ? 'opacity-50' : ''} ${isCurrent ? 'text-white' : 'text-brand-text-secondary'}`}>{item.name}</span>
                   </div>
-                  <span className={`font-semibold transition-all duration-200 ${isDimmed ? 'opacity-50' : ''} ${isCurrent ? 'text-white' : 'text-brand-text'}`}>{totalExpense > 0 ? `${((item.value / totalExpense) * 100).toFixed(0)}%` : '0%'}</span>
+                  {/* FIX: Explicitly cast item.value to a number to resolve TypeScript error. */}
+                  <span className={`font-semibold transition-all duration-200 ${isDimmed ? 'opacity-50' : ''} ${isCurrent ? 'text-white' : 'text-brand-text'}`}>{totalExpense > 0 ? `${((Number(item.value) / totalExpense) * 100).toFixed(0)}%` : '0%'}</span>
                 </div>
               );
             })}

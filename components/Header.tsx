@@ -17,7 +17,7 @@ const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab, navItems, onSe
           <span className="material-symbols-outlined text-3xl">account_balance_wallet</span>
           <span className="text-xl font-bold">AuriMea</span>
         </div>
-        <nav className="hidden md:flex items-center bg-brand-surface rounded-full p-1">
+        <nav className="hidden md:flex items-center bg-brand-surface rounded-full p-1 border border-brand-surface-alt">
           {navItems.map((item) => (
             <button
               key={item}

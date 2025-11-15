@@ -26,6 +26,7 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ onUpdateCard, onClose, is
   const [holder, setHolder] = useState('');
   const [expiry, setExpiry] = useState('');
   const [color, setColor] = useState(cardColors[0]);
+  const [budget, setBudget] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -35,6 +36,7 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ onUpdateCard, onClose, is
       setHolder(card.holder);
       setExpiry(card.expiry);
       setColor(card.color);
+      setBudget(card.budget ? String(card.budget) : '');
     }
   }, [card]);
 
@@ -55,7 +57,7 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ onUpdateCard, onClose, is
         return;
     }
 
-    onUpdateCard({ ...card, title, number: number.replace(/\s/g, ''), holder, expiry, color });
+    onUpdateCard({ ...card, title, number: number.replace(/\s/g, ''), holder, expiry, color, budget: budget ? parseFloat(budget) : undefined });
   };
 
   const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,29 +112,44 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ onUpdateCard, onClose, is
               autoComplete="cc-number"
             />
           </div>
-          <div>
-            <label htmlFor="cardHolderEdit" className="block text-sm font-medium text-brand-text-secondary mb-1">Karteninhaber</label>
-            <input
-              type="text"
-              id="cardHolderEdit"
-              value={holder}
-              onChange={e => setHolder(e.target.value)}
-              placeholder="Max Mustermann"
-              className="w-full bg-brand-surface p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white"
-              autoComplete="cc-name"
-            />
+           <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="cardHolderEdit" className="block text-sm font-medium text-brand-text-secondary mb-1">Karteninhaber</label>
+              <input
+                type="text"
+                id="cardHolderEdit"
+                value={holder}
+                onChange={e => setHolder(e.target.value)}
+                placeholder="Max Mustermann"
+                className="w-full bg-brand-surface p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white"
+                autoComplete="cc-name"
+              />
+            </div>
+            <div>
+              <label htmlFor="expiryDateEdit" className="block text-sm font-medium text-brand-text-secondary mb-1">Gültig bis</label>
+              <input
+                type="text"
+                id="expiryDateEdit"
+                value={expiry}
+                onChange={handleExpiryChange}
+                placeholder="MM/JJ"
+                className="w-full bg-brand-surface p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white font-mono"
+                maxLength={5}
+                autoComplete="cc-exp"
+              />
+            </div>
           </div>
           <div>
-            <label htmlFor="expiryDateEdit" className="block text-sm font-medium text-brand-text-secondary mb-1">Gültig bis</label>
+            <label htmlFor="cardBudgetEdit" className="block text-sm font-medium text-brand-text-secondary mb-1">Monatliches Budget (€) <span className="text-xs">(Optional)</span></label>
             <input
-              type="text"
-              id="expiryDateEdit"
-              value={expiry}
-              onChange={handleExpiryChange}
-              placeholder="MM/JJ"
-              className="w-full bg-brand-surface p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white font-mono"
-              maxLength={5}
-              autoComplete="cc-exp"
+              type="number"
+              id="cardBudgetEdit"
+              value={budget}
+              onChange={e => setBudget(e.target.value)}
+              placeholder="z.B. 1500"
+              className="w-full bg-brand-surface p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white"
+              min="0"
+              step="1"
             />
           </div>
           <div>

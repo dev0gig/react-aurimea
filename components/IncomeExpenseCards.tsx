@@ -31,14 +31,14 @@ const IncomeExpenseCards: React.FC<IncomeExpenseCardsProps> = ({ transactions, c
 
   return (
     <div className="space-y-4 h-full flex flex-col">
-      <div className="bg-brand-surface p-4 rounded-3xl flex-1">
+      <div className="bg-brand-surface p-4 rounded-3xl flex-1 border border-brand-surface-alt">
         <p className="text-brand-text-secondary text-sm">Einnahmen (Vormonat)</p>
         <p className="text-2xl font-semibold mt-1">+€{formattedIncome}</p>
         <div className="flex items-center justify-between mt-2">
           <p className="text-xs text-brand-text-secondary">Gehalt vom {prevMonthDate.toLocaleString('de-DE', { month: 'long' })}</p>
         </div>
       </div>
-      <div className="bg-brand-surface p-4 rounded-3xl flex-1">
+      <div className="bg-brand-surface p-4 rounded-3xl flex-1 border border-brand-surface-alt">
         <p className="text-brand-text-secondary text-sm">Ausgaben</p>
         <p className="text-2xl font-semibold mt-1">-€{formattedExpense}</p>
         <div className="flex items-center justify-between mt-2">

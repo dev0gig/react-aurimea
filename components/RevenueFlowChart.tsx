@@ -38,7 +38,7 @@ const RevenueFlowChart: React.FC<RevenueFlowChartProps> = ({ transactions, curre
     
   if (data.every(d => d.value === 0)) {
     return (
-      <div className="bg-brand-surface p-6 rounded-3xl flex flex-col">
+      <div className="bg-brand-surface p-6 rounded-3xl flex flex-col border border-brand-surface-alt">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">Einnahmenentwicklung</h3>
         </div>
@@ -50,7 +50,7 @@ const RevenueFlowChart: React.FC<RevenueFlowChartProps> = ({ transactions, curre
   }
 
   return (
-    <div className="bg-brand-surface p-6 rounded-3xl">
+    <div className="bg-brand-surface p-6 rounded-3xl border border-brand-surface-alt">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold">Einnahmenentwicklung</h3>
       </div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import type { Card, Transaction } from '../data/mockData';
 
 interface TransactionsPageProps {
@@ -13,23 +13,11 @@ interface TransactionsPageProps {
     onDeleteTransaction: (id: number | string) => void;
 }
 
-const getFormattedDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    const isSameDay = (d1: Date, d2: Date) => {
-        return d1.getFullYear() === d2.getFullYear() &&
-               d1.getMonth() === d2.getMonth() &&
-               d1.getDate() === d2.getDate();
-    }
-
-    if (isSameDay(date, today)) return 'Heute';
-    if (isSameDay(date, yesterday)) return 'Gestern';
-
-    const options: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric', year: 'numeric' };
-    return date.toLocaleDateString('de-DE', options);
+const formatDay = (dateString: string): string => {
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    const options: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric' };
+    return date.toLocaleDateString('de-DE', options) + '.';
 };
 
 const TransactionIcon: React.FC<{ transaction: Transaction }> = ({ transaction }) => {
@@ -60,6 +48,7 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ cards, transactions
     const transactionRefs = useRef<Map<number | string, HTMLDivElement | null>>(new Map());
     const [openMenuId, setOpenMenuId] = useState<number | string | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
     useEffect(() => {
         if (selectedTransactionId) {
@@ -92,34 +81,86 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ cards, transactions
         };
     }, [openMenuId]);
 
-    const filteredTransactions = selectedCardId 
-        ? transactions.filter(t => t.cardId === selectedCardId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        : [];
+    const handlePrevYear = () => setSelectedYear(prev => prev - 1);
+    const handleNextYear = () => setSelectedYear(prev => prev + 1);
 
-    // FIX: Explicitly type the initial value for `reduce` to ensure TypeScript correctly infers the accumulator's type as `Record<string, Transaction[]>`. This resolves an error where the `.map` property did not exist on the result of `Object.entries`.
-    const groupedTransactions = filteredTransactions.reduce((acc, transaction) => {
-        const date = transaction.date;
-        if (!acc[date]) {
-            acc[date] = [];
-        }
-        acc[date].push(transaction);
-        return acc;
-    }, {} as Record<string, Transaction[]>);
+    const isNextYearDisabled = useMemo(() => selectedYear >= new Date().getFullYear(), [selectedYear]);
+
+    const availableYears = useMemo(() => {
+        if (!selectedCardId) return [];
+        const years = new Set(
+            transactions
+                .filter(t => t.cardId === selectedCardId)
+                .map(t => new Date(t.date).getFullYear())
+        );
+        return Array.from(years).sort();
+    }, [transactions, selectedCardId]);
+
+    const isPrevYearDisabled = useMemo(() => {
+        if (!availableYears.length) return true;
+        return selectedYear <= Math.min(...availableYears);
+    }, [selectedYear, availableYears]);
+
+    const filteredTransactions = useMemo(() => selectedCardId 
+        ? transactions.filter(t => {
+            const transactionDate = new Date(t.date);
+            return t.cardId === selectedCardId && transactionDate.getFullYear() === selectedYear;
+        }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        : [], [transactions, selectedCardId, selectedYear]);
+
+    const monthlyGroupedTransactions = useMemo(() => {
+        return filteredTransactions.reduce((acc, transaction) => {
+            const date = new Date(transaction.date);
+            const monthKey = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, '0')}`;
+            if (!acc[monthKey]) {
+                acc[monthKey] = [];
+            }
+            acc[monthKey].push(transaction);
+            return acc;
+        }, {} as Record<string, Transaction[]>);
+    }, [filteredTransactions]);
+
+    const sortedMonthKeys = useMemo(() => {
+        return Object.keys(monthlyGroupedTransactions).sort().reverse();
+    }, [monthlyGroupedTransactions]);
+
+    const formatMonthKey = (key: string) => {
+        const [year, monthIndex] = key.split('-');
+        const date = new Date(parseInt(year), parseInt(monthIndex));
+        return date.toLocaleString('de-DE', { month: 'long', year: 'numeric' });
+    };
 
     return (
         <main className="mt-8 animate-fade-in">
             <h1 className="text-3xl font-bold text-white mb-6">Transaktionen</h1>
             
-            <div className="bg-brand-surface p-6 rounded-3xl">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-lg font-semibold text-white">Karte auswählen</h2>
-                    <button 
-                      onClick={() => onAddTransactionClick(selectedCardId)}
-                      disabled={!selectedCardId}
-                      className="flex items-center gap-1 bg-white text-black text-sm font-semibold px-3 py-1.5 rounded-full hover:bg-gray-200 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    >
-                      Neu <span className="material-symbols-outlined" style={{fontSize: '16px'}}>add</span>
-                    </button>
+            <div className="bg-brand-surface p-6 rounded-3xl border border-brand-surface-alt">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+                    <h2 className="text-lg font-semibold text-white">Karte & Jahr auswählen</h2>
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 bg-brand-surface-alt p-1 rounded-full">
+                            <button 
+                                onClick={handlePrevYear}
+                                disabled={isPrevYearDisabled}
+                                className="p-1 rounded-full hover:bg-brand-surface transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span className="material-symbols-outlined" style={{fontSize: '20px'}}>chevron_left</span>
+                            </button>
+                            <span className="text-sm font-semibold w-20 text-center">{selectedYear}</span>
+                            <button 
+                                onClick={handleNextYear} 
+                                disabled={isNextYearDisabled}
+                                className="p-1 rounded-full hover:bg-brand-surface transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span className="material-symbols-outlined" style={{fontSize: '20px'}}>chevron_right</span>
+                            </button>
+                        </div>
+                        <button 
+                          onClick={() => onAddTransactionClick(selectedCardId)}
+                          disabled={!selectedCardId}
+                          className="flex items-center gap-1 bg-white text-black text-sm font-semibold px-3 py-1.5 rounded-full hover:bg-gray-200 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        >
+                          Neu <span className="material-symbols-outlined" style={{fontSize: '16px'}}>add</span>
+                        </button>
+                    </div>
                 </div>
                 <div className="flex items-center gap-3 pb-6 border-b border-brand-surface-alt overflow-x-auto">
                     {cards.map(card => (
@@ -138,12 +179,18 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ cards, transactions
                 </div>
 
                 <div className="mt-6 space-y-4">
-                    {Object.keys(groupedTransactions).length > 0 ? (
-                        Object.entries(groupedTransactions).map(([date, transactionsOnDate]) => (
-                            <div key={date}>
-                                <h3 className="text-sm font-semibold text-brand-text-secondary mb-3">{getFormattedDate(date)}</h3>
-                                <div className="space-y-2">
-                                    {transactionsOnDate.map(t => (
+                    {sortedMonthKeys.length > 0 ? (
+                        sortedMonthKeys.map(monthKey => (
+                            <div key={monthKey}>
+                                <h3 className="text-sm font-semibold text-brand-text-secondary mb-3">{formatMonthKey(monthKey)}</h3>
+                                <div className="hidden md:grid md:grid-cols-5 gap-4 items-center px-3 pb-2">
+                                    <h4 className="md:col-span-2 text-xs font-semibold text-brand-text-secondary uppercase tracking-wider">Name</h4>
+                                    <h4 className="text-xs font-semibold text-brand-text-secondary uppercase tracking-wider text-center">Datum</h4>
+                                    <h4 className="text-xs font-semibold text-brand-text-secondary uppercase tracking-wider">Kategorie</h4>
+                                    <h4 className="text-xs font-semibold text-brand-text-secondary uppercase tracking-wider text-right">Betrag</h4>
+                                </div>
+                                <div className="space-y-1">
+                                    {monthlyGroupedTransactions[monthKey].map(t => (
                                         <div 
                                             key={t.id} 
                                             ref={el => {
@@ -153,21 +200,22 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ cards, transactions
                                                     transactionRefs.current.delete(t.id);
                                                 }
                                             }}
-                                            className="grid grid-cols-2 md:grid-cols-4 items-center p-3 -m-3 rounded-xl hover:bg-brand-surface-alt transition-all duration-1000"
+                                            className="grid grid-cols-2 md:grid-cols-5 gap-4 items-center p-3 -m-3 rounded-xl hover:bg-brand-surface-alt transition-all duration-200"
                                         >
-                                            <div className="col-span-1 md:col-span-2">
-                                                 <div className="flex items-center gap-3">
-                                                    <TransactionIcon transaction={t} />
-                                                    <div>
-                                                        <p className="font-medium">{t.name}</p>
-                                                        <p className="text-xs text-brand-text-secondary">{t.category}</p>
-                                                    </div>
+                                            <div className="md:col-span-2 flex items-center gap-3">
+                                                <TransactionIcon transaction={t} />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-medium truncate" title={t.name}>{t.name}</p>
+                                                    <p className="text-xs text-brand-text-secondary md:hidden">{t.category} &bull; {formatDay(t.date)}</p>
                                                 </div>
                                             </div>
-                                            <div className="hidden md:block text-sm text-brand-text-secondary">
-                                                {new Date(t.date + 'T00:00:00').toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                                            <div className="hidden md:block text-sm text-brand-text-secondary text-center">
+                                                {formatDay(t.date)}
                                             </div>
-                                            <div className="relative flex items-center justify-end gap-2 text-right font-semibold">
+                                            <div className="hidden md:block text-sm text-brand-text-secondary truncate" title={t.category}>
+                                                {t.category}
+                                            </div>
+                                            <div className="col-start-2 md:col-start-auto relative flex items-center justify-end gap-2 text-right font-semibold">
                                                 <span className={t.amount > 0 ? 'text-brand-accent-green' : 'text-brand-text'}>
                                                     {t.amount < 0 ? `-€${Math.abs(t.amount).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `+€${t.amount.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                                                 </span>
@@ -204,7 +252,7 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ cards, transactions
                         ))
                     ) : (
                         <div className="text-center py-12">
-                            <p className="text-brand-text-secondary">Keine Transaktionen für diese Karte gefunden.</p>
+                            <p className="text-brand-text-secondary">Keine Transaktionen für diese Karte in {selectedYear} gefunden.</p>
                         </div>
                     )}
                 </div>

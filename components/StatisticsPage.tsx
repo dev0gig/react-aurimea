@@ -127,8 +127,6 @@ const StatisticsPage: React.FC<StatisticsPageProps> = ({ cards, transactions, se
             revenueFlowData: monthBuckets.map(({name, value}) => ({name, value}))
         };
     }, [selectedCardId, transactions, currentDate]);
-
-    const selectedCard = cards.find(c => c.id === selectedCardId);
     
     const prevMonthDate = useMemo(() => {
         const d = new Date(currentDate);
@@ -136,11 +134,15 @@ const StatisticsPage: React.FC<StatisticsPageProps> = ({ cards, transactions, se
         return d;
     }, [currentDate]);
 
+    const dynamicBudget = cardStats.totalIncome;
+    const budgetProgress = dynamicBudget > 0 ? (cardStats.totalExpense / dynamicBudget) * 100 : 0;
+    const budgetRemaining = dynamicBudget > 0 ? dynamicBudget - cardStats.totalExpense : 0;
+
     return (
         <main className="mt-8 animate-fade-in">
-            <h1 className="text-3xl font-bold text-white mb-6">Statistiken für {selectedCard?.title || '...'}</h1>
+            <h1 className="text-3xl font-bold text-white mb-6">Statistiken für {cards.find(c => c.id === selectedCardId)?.title || '...'}</h1>
             
-            <div className="bg-brand-surface p-6 rounded-3xl mb-6">
+            <div className="bg-brand-surface p-6 rounded-3xl mb-6 border border-brand-surface-alt">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <h2 className="text-lg font-semibold text-white">Karte auswählen</h2>
                     <div className="flex items-center gap-2 bg-brand-surface-alt p-1 rounded-full">
@@ -172,20 +174,39 @@ const StatisticsPage: React.FC<StatisticsPageProps> = ({ cards, transactions, se
             
             {selectedCardId ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-brand-surface p-4 rounded-3xl">
+                    {dynamicBudget > 0 && (
+                        <div className="md:col-span-2 bg-brand-surface p-6 rounded-3xl border border-brand-surface-alt">
+                             <h3 className="text-lg font-semibold mb-4">Budget (Gehalt {prevMonthDate.toLocaleString('de-DE', { month: 'long' })})</h3>
+                             <div className="flex justify-between items-end mb-2">
+                                <span className="text-2xl font-bold text-white">€{cardStats.totalExpense.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-base font-normal text-brand-text-secondary">verwendet</span></span>
+                                <span className="text-base text-brand-text-secondary">von €{dynamicBudget.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            </div>
+                            <div className="w-full bg-brand-surface-alt rounded-full h-2.5">
+                                <div className={`h-2.5 rounded-full transition-all duration-500 ${budgetProgress > 100 ? 'bg-brand-accent-red' : 'bg-purple-500'}`} style={{ width: `${Math.min(budgetProgress, 100)}%` }}></div>
+                            </div>
+                             <div className="text-right mt-2 text-sm font-semibold">
+                                {budgetRemaining >= 0 ? 
+                                    <span>€{budgetRemaining.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} übrig</span> : 
+                                    <span className="text-brand-accent-red">€{Math.abs(budgetRemaining).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} überzogen</span>
+                                }
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="bg-brand-surface p-4 rounded-3xl border border-brand-surface-alt">
                         <p className="text-brand-text-secondary text-sm">Einnahmen ({prevMonthDate.toLocaleString('de-DE', { month: 'long' })})</p>
                         <p className="text-2xl font-semibold mt-1 text-brand-accent-green">
                             +€{cardStats.totalIncome.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
                     </div>
-                    <div className="bg-brand-surface p-4 rounded-3xl">
+                    <div className="bg-brand-surface p-4 rounded-3xl border border-brand-surface-alt">
                         <p className="text-brand-text-secondary text-sm">Ausgaben ({currentDate.toLocaleString('de-DE', { month: 'long' })})</p>
                         <p className="text-2xl font-semibold mt-1 text-brand-accent-red">
                             -€{cardStats.totalExpense.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
                     </div>
 
-                    <div className="bg-brand-surface p-6 rounded-3xl">
+                    <div className="bg-brand-surface p-6 rounded-3xl border border-brand-surface-alt">
                     <h3 className="text-lg font-semibold">Einnahmenentwicklung</h3>
                     <div className="h-64 mt-4">
                         <ResponsiveContainer width="100%" height="100%">
@@ -200,7 +221,7 @@ const StatisticsPage: React.FC<StatisticsPageProps> = ({ cards, transactions, se
                     </div>
                     </div>
 
-                    <div className="bg-brand-surface p-6 rounded-3xl">
+                    <div className="bg-brand-surface p-6 rounded-3xl border border-brand-surface-alt">
                     <h3 className="text-lg font-semibold mb-4">Ausgabenverteilung</h3>
                     {cardStats.expenseSplitData.length > 0 ? (
                         <div className="flex flex-col md:flex-row items-center gap-6">
@@ -239,7 +260,7 @@ const StatisticsPage: React.FC<StatisticsPageProps> = ({ cards, transactions, se
                     </div>
                 </div>
             ) : (
-                 <div className="text-center py-12 bg-brand-surface rounded-3xl">
+                 <div className="text-center py-12 bg-brand-surface rounded-3xl border border-brand-surface-alt">
                     <p className="text-brand-text-secondary">Bitte wählen Sie eine Karte aus, um die Statistiken anzuzeigen.</p>
                 </div>
             )}

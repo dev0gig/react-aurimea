@@ -26,7 +26,7 @@ const FixedCosts: React.FC<FixedCostsProps> = ({ fixedCosts, onAddClick, onFixed
   }, [openMenuId]);
   
   return (
-    <div className="bg-brand-surface p-6 rounded-3xl">
+    <div className="bg-brand-surface p-6 rounded-3xl border border-brand-surface-alt">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold">Fixkosten <span className="text-sm text-brand-text-secondary">{fixedCosts.length}</span></h3>
         <button 

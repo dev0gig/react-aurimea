@@ -73,7 +73,7 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
 
 
   return (
-    <div className="bg-brand-surface p-6 rounded-3xl">
+    <div className="bg-brand-surface p-6 rounded-3xl border border-brand-surface-alt">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold">Letzte Transaktionen <span className="text-sm text-brand-text-secondary">{transactions.length}</span></h3>
         <button 
@@ -96,8 +96,8 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
               <div className="col-span-2 md:col-span-2">
                 <div className="flex items-center gap-3">
                     <TransactionIcon transaction={t} />
-                    <div>
-                        <span className="font-medium">{t.name}</span>
+                    <div className="flex-1 min-w-0">
+                        <span className="font-medium block truncate" title={t.name}>{t.name}</span>
                         <p className="text-xs text-brand-text-secondary">{t.category}</p>
                     </div>
                 </div>

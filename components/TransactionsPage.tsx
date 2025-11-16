@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import type { Card, Transaction } from '../data/mockData';
 
@@ -14,9 +15,8 @@ interface TransactionsPageProps {
 }
 
 const formatDay = (dateString: string): string => {
-    const [year, month, day] = dateString.split('-').map(Number);
-    const date = new Date(year, month - 1, day);
-    const options: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric' };
+    const date = new Date(dateString);
+    const options: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', timeZone: 'Europe/Vienna' };
     return date.toLocaleDateString('de-DE', options) + '.';
 };
 
@@ -91,7 +91,7 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ cards, transactions
         const years = new Set(
             transactions
                 .filter(t => t.cardId === selectedCardId)
-                .map(t => new Date(t.date).getFullYear())
+                .map(t => new Date(t.date).getUTCFullYear())
         );
         return Array.from(years).sort();
     }, [transactions, selectedCardId]);
@@ -104,14 +104,14 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ cards, transactions
     const filteredTransactions = useMemo(() => selectedCardId 
         ? transactions.filter(t => {
             const transactionDate = new Date(t.date);
-            return t.cardId === selectedCardId && transactionDate.getFullYear() === selectedYear;
+            return t.cardId === selectedCardId && transactionDate.getUTCFullYear() === selectedYear;
         }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         : [], [transactions, selectedCardId, selectedYear]);
 
     const monthlyGroupedTransactions = useMemo(() => {
         return filteredTransactions.reduce((acc, transaction) => {
             const date = new Date(transaction.date);
-            const monthKey = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, '0')}`;
+            const monthKey = `${date.getUTCFullYear()}-${String(date.getUTCMonth()).padStart(2, '0')}`;
             if (!acc[monthKey]) {
                 acc[monthKey] = [];
             }
@@ -126,8 +126,8 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ cards, transactions
 
     const formatMonthKey = (key: string) => {
         const [year, monthIndex] = key.split('-');
-        const date = new Date(parseInt(year), parseInt(monthIndex));
-        return date.toLocaleString('de-DE', { month: 'long', year: 'numeric' });
+        const date = new Date(Date.UTC(parseInt(year), parseInt(monthIndex)));
+        return date.toLocaleString('de-DE', { month: 'long', year: 'numeric', timeZone: 'UTC' });
     };
 
     return (

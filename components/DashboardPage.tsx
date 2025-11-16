@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import TotalBalanceCard from './TotalBalanceCard';
 import IncomeExpenseCards from './IncomeExpenseCards';
@@ -23,37 +24,48 @@ interface DashboardPageProps {
     onFixedCostNavigate: (transactionId: number | string) => void;
 }
 
+const getViennaFirstOfMonth = () => {
+    const now = new Date();
+    const viennaDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Vienna' });
+    const [year, month] = viennaDateStr.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 1, 1));
+};
+
 const DashboardPage: React.FC<DashboardPageProps> = ({ 
     cards, selectedCardId, onCardNavigate, onAddCard, onEditCard,
     transactions, manualTransactions, onTransactionNavigate, onAddTransactionClick, onEditTransaction, onDeleteTransaction, 
     onFixedCostNavigate
 }) => {
-    const [currentDate, setCurrentDate] = useState(new Date());
+    const [currentDate, setCurrentDate] = useState(getViennaFirstOfMonth());
 
     const transactionsForCalculations = useMemo(() => transactions.filter(t => !t.isFuture), [transactions]);
 
     const handlePrevMonth = () => {
         setCurrentDate(prevDate => {
-            const newDate = new Date(prevDate);
-            newDate.setMonth(newDate.getMonth() - 1);
+            const newDate = new Date(prevDate.getTime());
+            newDate.setUTCMonth(newDate.getUTCMonth() - 1);
             return newDate;
         });
     };
 
     const handleNextMonth = () => {
         setCurrentDate(prevDate => {
-            const newDate = new Date(prevDate);
-            newDate.setMonth(newDate.getMonth() + 1);
+            const newDate = new Date(prevDate.getTime());
+            newDate.setUTCMonth(newDate.getUTCMonth() + 1);
             return newDate;
         });
     };
   
     const isNextMonthFuture = () => {
-        const nextMonth = new Date(currentDate);
-        nextMonth.setMonth(nextMonth.getMonth() + 1);
-        const today = new Date();
-        return nextMonth.getFullYear() > today.getFullYear() || 
-               (nextMonth.getFullYear() === today.getFullYear() && nextMonth.getMonth() > today.getMonth());
+        const nextMonth = new Date(currentDate.getTime());
+        nextMonth.setUTCMonth(nextMonth.getUTCMonth() + 1);
+        
+        const now = new Date();
+        const viennaDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Vienna' });
+        const [year, month] = viennaDateStr.split('-').map(Number);
+        const startOfCurrentViennaMonth = new Date(Date.UTC(year, month - 1, 1));
+
+        return nextMonth > startOfCurrentViennaMonth;
     }
     
     const fixedCostTemplates = manualTransactions.filter(t => t.isFixedCost);
@@ -66,7 +78,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                     <button onClick={handlePrevMonth} className="p-1 rounded-full hover:bg-brand-surface-alt transition-colors">
                         <span className="material-symbols-outlined" style={{fontSize: '20px'}}>chevron_left</span>
                     </button>
-                    <span className="text-sm font-semibold w-32 text-center">{currentDate.toLocaleString('de-DE', { month: 'long', year: 'numeric' })}</span>
+                    <span className="text-sm font-semibold w-32 text-center">{currentDate.toLocaleString('de-DE', { month: 'long', year: 'numeric', timeZone: 'UTC' })}</span>
                     <button onClick={handleNextMonth} disabled={isNextMonthFuture()} className="p-1 rounded-full hover:bg-brand-surface-alt transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                         <span className="material-symbols-outlined" style={{fontSize: '20px'}}>chevron_right</span>
                     </button>

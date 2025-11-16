@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import type { Transaction } from '../data/mockData';
@@ -25,8 +26,8 @@ const ExpenseSplitChart: React.FC<ExpenseSplitChartProps> = ({ transactions, cur
     return transactions.filter(t => {
       if (t.amount >= 0) return false;
       const transactionDate = new Date(t.date);
-      return transactionDate.getFullYear() === currentDate.getFullYear() &&
-             transactionDate.getMonth() === currentDate.getMonth();
+      return transactionDate.getUTCFullYear() === currentDate.getUTCFullYear() &&
+             transactionDate.getUTCMonth() === currentDate.getUTCMonth();
     });
   }, [transactions, currentDate]);
   

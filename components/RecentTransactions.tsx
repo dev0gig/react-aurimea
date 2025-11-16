@@ -1,22 +1,24 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import type { Transaction } from '../data/mockData';
 
 const getFormattedDate = (dateString: string): string => {
     const date = new Date(dateString);
     const today = new Date();
-    const yesterday = new Date(today);
+    const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
 
-    const isSameDay = (d1: Date, d2: Date) => {
-        return d1.getFullYear() === d2.getFullYear() &&
-               d1.getMonth() === d2.getMonth() &&
-               d1.getDate() === d2.getDate();
-    }
+    const viennaDateFormatter = new Intl.DateTimeFormat('de-DE', {
+        timeZone: 'Europe/Vienna',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
 
-    if (isSameDay(date, today)) return 'Heute';
-    if (isSameDay(date, yesterday)) return 'Gestern';
+    if (viennaDateFormatter.format(date) === viennaDateFormatter.format(today)) return 'Heute';
+    if (viennaDateFormatter.format(date) === viennaDateFormatter.format(yesterday)) return 'Gestern';
 
-    const options: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric' };
+    const options: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric', timeZone: 'Europe/Vienna' };
     return date.toLocaleDateString('de-DE', options);
 };
 

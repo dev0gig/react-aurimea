@@ -87,21 +87,30 @@ const App: React.FC = () => {
   const combinedTransactions = useMemo(() => {
     const fixedCostTemplates = manualTransactions.filter(t => t.isFixedCost);
     const generatedTransactions: Transaction[] = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
     
-    const todayForMonthComparison = new Date();
+    const viennaTimeZone = 'Europe/Vienna';
+    const now = new Date();
+    
+    // Get today's date string in Vienna (YYYY-MM-DD format) to establish a clear "today"
+    const todayViennaStr = now.toLocaleDateString('en-CA', { timeZone: viennaTimeZone });
+    // Create a date object for midnight UTC on that day for consistent comparisons
+    const today = new Date(`${todayViennaStr}T00:00:00.000Z`);
+    
+    // Get current year and month from the Vienna date string
+    const [currentViennaYear, currentViennaMonth] = todayViennaStr.split('-').map(Number);
+    const currentViennaMonthIndex = currentViennaMonth - 1; // JS month is 0-indexed
 
     for (let i = -12; i <= 24; i++) {
-      const targetDate = new Date(todayForMonthComparison.getFullYear(), todayForMonthComparison.getMonth() + i, 1);
-      const targetYear = targetDate.getFullYear();
-      const targetMonth = targetDate.getMonth();
+      // Use UTC dates for all calculations to avoid local timezone interference
+      const targetDate = new Date(Date.UTC(currentViennaYear, currentViennaMonthIndex + i, 1));
+      const targetYear = targetDate.getUTCFullYear();
+      const targetMonth = targetDate.getUTCMonth();
 
       fixedCostTemplates.forEach(fc => {
         if (fc.billingDay) {
-          const templateStartDate = new Date(fc.date);
-          const templateStartYear = templateStartDate.getFullYear();
-          const templateStartMonth = templateStartDate.getMonth();
+          const templateStartDate = new Date(fc.date); // Date strings are parsed as UTC midnight
+          const templateStartYear = templateStartDate.getUTCFullYear();
+          const templateStartMonth = templateStartDate.getUTCMonth();
 
           const monthsDiff = (targetYear - templateStartYear) * 12 + (targetMonth - templateStartMonth);
           if (monthsDiff < 0) return;
@@ -118,9 +127,9 @@ const App: React.FC = () => {
           }
 
           if (shouldGenerate) {
-            const daysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+            const daysInMonth = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
             const day = Math.min(fc.billingDay, daysInMonth);
-            const transactionFullDate = new Date(targetYear, targetMonth, day);
+            const transactionFullDate = new Date(Date.UTC(targetYear, targetMonth, day));
             
             generatedTransactions.push({
               ...fc,

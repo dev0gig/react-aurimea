@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import type { Transaction, Card } from '../data/mockData';
 
@@ -11,7 +12,7 @@ interface SearchModalProps {
 
 const getFormattedDate = (dateString: string): string => {
     const date = new Date(dateString);
-    const options: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric', year: 'numeric' };
+    const options: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'Europe/Vienna' };
     return date.toLocaleDateString('de-DE', options);
 };
 

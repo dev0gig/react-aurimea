@@ -10,13 +10,12 @@ interface RevenueFlowChartProps {
 
 const RevenueFlowChart: React.FC<RevenueFlowChartProps> = ({ transactions, currentDate }) => {
   const monthBuckets = Array.from({ length: 5 }).map((_, i) => {
-    const d = new Date(currentDate);
-    d.setDate(1); // Avoid month skipping issues
-    d.setMonth(d.getMonth() - i);
+    const d = new Date(currentDate.getTime());
+    d.setUTCMonth(d.getUTCMonth() - i);
     return {
-        name: d.toLocaleString('de-DE', { month: 'short' }),
-        year: d.getFullYear(),
-        month: d.getMonth(),
+        name: d.toLocaleString('de-DE', { month: 'short', timeZone: 'UTC' }),
+        year: d.getUTCFullYear(),
+        month: d.getUTCMonth(),
         value: 0
     };
   }).reverse();
@@ -24,8 +23,8 @@ const RevenueFlowChart: React.FC<RevenueFlowChartProps> = ({ transactions, curre
   transactions.forEach(t => {
       if (t.amount > 0) {
           const date = new Date(t.date);
-          const transactionYear = date.getFullYear();
-          const transactionMonth = date.getMonth();
+          const transactionYear = date.getUTCFullYear();
+          const transactionMonth = date.getUTCMonth();
   
           const bucket = monthBuckets.find(m => m.year === transactionYear && m.month === transactionMonth);
           if (bucket) {

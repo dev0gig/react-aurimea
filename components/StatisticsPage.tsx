@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import type { Card, Transaction } from '../data/mockData';
@@ -22,31 +23,42 @@ const expenseColors: { [key: string]: string } = {
   'Standard': '#8A8B9F',
 };
 
+const getViennaFirstOfMonth = () => {
+    const now = new Date();
+    const viennaDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Vienna' });
+    const [year, month] = viennaDateStr.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 1, 1));
+};
+
 const StatisticsPage: React.FC<StatisticsPageProps> = ({ cards, transactions, selectedCardId, setSelectedCardId }) => {
-    const [currentDate, setCurrentDate] = useState(new Date());
+    const [currentDate, setCurrentDate] = useState(getViennaFirstOfMonth());
 
     const handlePrevMonth = () => {
         setCurrentDate(prevDate => {
-            const newDate = new Date(prevDate);
-            newDate.setMonth(newDate.getMonth() - 1);
+            const newDate = new Date(prevDate.getTime());
+            newDate.setUTCMonth(newDate.getUTCMonth() - 1);
             return newDate;
         });
     };
 
     const handleNextMonth = () => {
         setCurrentDate(prevDate => {
-            const newDate = new Date(prevDate);
-            newDate.setMonth(newDate.getMonth() + 1);
+            const newDate = new Date(prevDate.getTime());
+            newDate.setUTCMonth(newDate.getUTCMonth() + 1);
             return newDate;
         });
     };
   
     const isNextMonthFuture = () => {
-        const nextMonth = new Date(currentDate);
-        nextMonth.setMonth(nextMonth.getMonth() + 1);
-        const today = new Date();
-        return nextMonth.getFullYear() > today.getFullYear() || 
-               (nextMonth.getFullYear() === today.getFullYear() && nextMonth.getMonth() > today.getMonth());
+        const nextMonth = new Date(currentDate.getTime());
+        nextMonth.setUTCMonth(nextMonth.getUTCMonth() + 1);
+        
+        const now = new Date();
+        const viennaDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Vienna' });
+        const [year, month] = viennaDateStr.split('-').map(Number);
+        const startOfCurrentViennaMonth = new Date(Date.UTC(year, month - 1, 1));
+
+        return nextMonth > startOfCurrentViennaMonth;
     }
 
     const cardStats = useMemo(() => {
@@ -60,23 +72,23 @@ const StatisticsPage: React.FC<StatisticsPageProps> = ({ cards, transactions, se
         const cardBalance = filteredForCard.reduce((acc, t) => acc + t.amount, 0);
 
         // --- Date setup ---
-        const currentYear = currentDate.getFullYear();
-        const currentMonth = currentDate.getMonth();
-        const prevMonthDate = new Date(currentDate);
-        prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
-        const prevMonthYear = prevMonthDate.getFullYear();
-        const prevMonth = prevMonthDate.getMonth();
+        const currentYear = currentDate.getUTCFullYear();
+        const currentMonth = currentDate.getUTCMonth();
+        const prevMonthDate = new Date(currentDate.getTime());
+        prevMonthDate.setUTCMonth(prevMonthDate.getUTCMonth() - 1);
+        const prevMonthYear = prevMonthDate.getUTCFullYear();
+        const prevMonth = prevMonthDate.getUTCMonth();
 
         // --- Current & Previous Month Transactions ---
         const monthlyTransactions = filteredForCard.filter(t => {
             const transactionDate = new Date(t.date);
-            return transactionDate.getFullYear() === currentYear &&
-                    transactionDate.getMonth() === currentMonth;
+            return transactionDate.getUTCFullYear() === currentYear &&
+                    transactionDate.getUTCMonth() === currentMonth;
         });
          const prevMonthsTransactions = filteredForCard.filter(t => {
             const transactionDate = new Date(t.date);
-            return transactionDate.getFullYear() === prevMonthYear &&
-                   transactionDate.getMonth() === prevMonth;
+            return transactionDate.getUTCFullYear() === prevMonthYear &&
+                   transactionDate.getUTCMonth() === prevMonth;
         });
 
         // --- Stat Calculations ---
@@ -99,13 +111,12 @@ const StatisticsPage: React.FC<StatisticsPageProps> = ({ cards, transactions, se
 
         // --- Revenue Flow Data (last 5 months) ---
         const monthBuckets = Array.from({ length: 5 }).map((_, i) => {
-            const d = new Date(currentDate);
-            d.setDate(1); // Avoid month skipping issues
-            d.setMonth(d.getMonth() - i);
+            const d = new Date(currentDate.getTime());
+            d.setUTCMonth(d.getUTCMonth() - i);
             return {
-                name: d.toLocaleString('de-DE', { month: 'short' }),
-                year: d.getFullYear(),
-                month: d.getMonth(),
+                name: d.toLocaleString('de-DE', { month: 'short', timeZone: 'UTC' }),
+                year: d.getUTCFullYear(),
+                month: d.getUTCMonth(),
                 value: 0
             };
         }).reverse();
@@ -113,8 +124,8 @@ const StatisticsPage: React.FC<StatisticsPageProps> = ({ cards, transactions, se
         filteredForCard.forEach(t => {
             if (t.amount > 0) {
                 const date = new Date(t.date);
-                const transactionYear = date.getFullYear();
-                const transactionMonth = date.getMonth();
+                const transactionYear = date.getUTCFullYear();
+                const transactionMonth = date.getUTCMonth();
         
                 const bucket = monthBuckets.find(m => m.year === transactionYear && m.month === transactionMonth);
                 if (bucket) {
@@ -135,7 +146,7 @@ const StatisticsPage: React.FC<StatisticsPageProps> = ({ cards, transactions, se
     
     const prevMonthDate = useMemo(() => {
         const d = new Date(currentDate);
-        d.setMonth(d.getMonth() - 1);
+        d.setUTCMonth(d.getUTCMonth() - 1);
         return d;
     }, [currentDate]);
 
@@ -150,7 +161,7 @@ const StatisticsPage: React.FC<StatisticsPageProps> = ({ cards, transactions, se
                         <button onClick={handlePrevMonth} className="p-1 rounded-full hover:bg-brand-surface transition-colors">
                             <span className="material-symbols-outlined" style={{fontSize: '20px'}}>chevron_left</span>
                         </button>
-                        <span className="text-sm font-semibold w-32 text-center">{currentDate.toLocaleString('de-DE', { month: 'long', year: 'numeric' })}</span>
+                        <span className="text-sm font-semibold w-32 text-center">{currentDate.toLocaleString('de-DE', { month: 'long', year: 'numeric', timeZone: 'UTC' })}</span>
                         <button onClick={handleNextMonth} disabled={isNextMonthFuture()} className="p-1 rounded-full hover:bg-brand-surface transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                             <span className="material-symbols-outlined" style={{fontSize: '20px'}}>chevron_right</span>
                         </button>
@@ -183,13 +194,13 @@ const StatisticsPage: React.FC<StatisticsPageProps> = ({ cards, transactions, se
                     </div>
 
                     <div className="bg-brand-surface p-4 rounded-3xl border border-brand-surface-alt">
-                        <p className="text-brand-text-secondary text-sm">Einnahmen ({prevMonthDate.toLocaleString('de-DE', { month: 'long' })})</p>
+                        <p className="text-brand-text-secondary text-sm">Einnahmen ({prevMonthDate.toLocaleString('de-DE', { month: 'long', timeZone: 'UTC' })})</p>
                         <p className="text-2xl font-semibold mt-1 text-brand-accent-green">
                             +€{cardStats.totalIncome.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
                     </div>
                     <div className="bg-brand-surface p-4 rounded-3xl border border-brand-surface-alt">
-                        <p className="text-brand-text-secondary text-sm">Ausgaben ({currentDate.toLocaleString('de-DE', { month: 'long' })})</p>
+                        <p className="text-brand-text-secondary text-sm">Ausgaben ({currentDate.toLocaleString('de-DE', { month: 'long', timeZone: 'UTC' })})</p>
                         <p className="text-2xl font-semibold mt-1 text-brand-accent-red">
                             -€{cardStats.totalExpense.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>

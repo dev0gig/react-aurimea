@@ -10,17 +10,17 @@ interface IncomeExpenseCardsProps {
 const IncomeExpenseCards: React.FC<IncomeExpenseCardsProps> = ({ transactions, currentDate }) => {
     const thisMonthsTransactions = transactions.filter(t => {
         const transactionDate = new Date(t.date);
-        return transactionDate.getFullYear() === currentDate.getFullYear() &&
-               transactionDate.getMonth() === currentDate.getMonth();
+        return transactionDate.getUTCFullYear() === currentDate.getUTCFullYear() &&
+               transactionDate.getUTCMonth() === currentDate.getUTCMonth();
     });
 
     const prevMonthDate = new Date(currentDate);
-    prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
+    prevMonthDate.setUTCMonth(prevMonthDate.getUTCMonth() - 1);
 
     const prevMonthsTransactions = transactions.filter(t => {
         const transactionDate = new Date(t.date);
-        return transactionDate.getFullYear() === prevMonthDate.getFullYear() &&
-               transactionDate.getMonth() === prevMonthDate.getMonth();
+        return transactionDate.getUTCFullYear() === prevMonthDate.getUTCFullYear() &&
+               transactionDate.getUTCMonth() === prevMonthDate.getUTCMonth();
     });
 
   const monthlyIncome = prevMonthsTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
@@ -35,7 +35,7 @@ const IncomeExpenseCards: React.FC<IncomeExpenseCardsProps> = ({ transactions, c
         <p className="text-brand-text-secondary text-sm">Einnahmen (Vormonat)</p>
         <p className="text-2xl font-semibold mt-1">+€{formattedIncome}</p>
         <div className="flex items-center justify-between mt-2">
-          <p className="text-xs text-brand-text-secondary">Gehalt vom {prevMonthDate.toLocaleString('de-DE', { month: 'long' })}</p>
+          <p className="text-xs text-brand-text-secondary">Gehalt vom {prevMonthDate.toLocaleString('de-DE', { month: 'long', timeZone: 'UTC' })}</p>
         </div>
       </div>
       <div className="bg-brand-surface p-4 rounded-3xl flex-1 border border-brand-surface-alt">

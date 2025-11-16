@@ -26,7 +26,6 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ onUpdateCard, onClose, is
   const [holder, setHolder] = useState('');
   const [expiry, setExpiry] = useState('');
   const [color, setColor] = useState(cardColors[0]);
-  const [budget, setBudget] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -36,7 +35,6 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ onUpdateCard, onClose, is
       setHolder(card.holder);
       setExpiry(card.expiry);
       setColor(card.color);
-      setBudget(card.budget ? String(card.budget) : '');
     }
   }, [card]);
 
@@ -57,7 +55,7 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ onUpdateCard, onClose, is
         return;
     }
 
-    onUpdateCard({ ...card, title, number: number.replace(/\s/g, ''), holder, expiry, color, budget: budget ? parseFloat(budget) : undefined });
+    onUpdateCard({ ...card, title, number: number.replace(/\s/g, ''), holder, expiry, color });
   };
 
   const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,19 +136,6 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ onUpdateCard, onClose, is
                 autoComplete="cc-exp"
               />
             </div>
-          </div>
-          <div>
-            <label htmlFor="cardBudgetEdit" className="block text-sm font-medium text-brand-text-secondary mb-1">Monatliches Budget (€) <span className="text-xs">(Optional)</span></label>
-            <input
-              type="number"
-              id="cardBudgetEdit"
-              value={budget}
-              onChange={e => setBudget(e.target.value)}
-              placeholder="z.B. 1500"
-              className="w-full bg-brand-surface p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white"
-              min="0"
-              step="1"
-            />
           </div>
           <div>
             <label className="block text-sm font-medium text-brand-text-secondary mb-2">Kartenfarbe</label>

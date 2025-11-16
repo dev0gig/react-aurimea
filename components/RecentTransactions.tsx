@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import type { Transaction } from '../data/mockData';
 
@@ -57,9 +56,11 @@ interface RecentTransactionsProps {
 const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, onTransactionNavigate, onAddClick, onEditTransaction, onDeleteTransaction }) => {
   const [openMenuId, setOpenMenuId] = useState<number | string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const recentTransactions = [...transactions]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 5);
+  
+  const todayString = new Date().toISOString().split('T')[0];
+  const pastTransactions = transactions.filter(t => t.date <= todayString);
+  const recentTransactions = pastTransactions.slice(0, 5);
+
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -77,7 +78,7 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
   return (
     <div className="bg-brand-surface p-6 rounded-3xl border border-brand-surface-alt">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">Letzte Transaktionen <span className="text-sm text-brand-text-secondary">{transactions.filter(t => !t.isFuture).length}</span></h3>
+        <h3 className="text-lg font-semibold">Letzte Transaktionen <span className="text-sm text-brand-text-secondary">{pastTransactions.length}</span></h3>
         <button 
           onClick={onAddClick}
           className="flex items-center gap-1 bg-white text-black text-sm font-semibold px-3 py-1.5 rounded-full hover:bg-gray-200 transition-colors"
@@ -90,7 +91,7 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
           recentTransactions.map((t) => (
             <div 
               key={t.id} 
-              className={`grid grid-cols-3 md:grid-cols-4 items-center p-3 -m-3 rounded-xl hover:bg-brand-surface-alt transition-colors duration-200 cursor-pointer ${t.isFuture ? 'opacity-50' : ''}`}
+              className={`grid grid-cols-3 md:grid-cols-4 items-center p-3 -m-3 rounded-xl hover:bg-brand-surface-alt transition-colors duration-200 cursor-pointer`}
               onClick={() => {
                 if (!openMenuId) onTransactionNavigate(t.id, t.cardId)
               }}

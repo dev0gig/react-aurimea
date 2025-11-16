@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { Transaction } from '../data/mockData';
 
 interface FixedCostsProps {
@@ -23,11 +23,41 @@ const FixedCosts: React.FC<FixedCostsProps> = ({ fixedCosts, onFixedCostNavigate
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [openMenuId]);
+
+  const totalMonthlyCost = useMemo(() => {
+    return fixedCosts.reduce((sum, fc) => {
+      let monthlyAmount = Math.abs(fc.amount);
+      switch (fc.frequency) {
+        case 'bimonthly':
+          monthlyAmount /= 2;
+          break;
+        case 'quarterly':
+          monthlyAmount /= 3;
+          break;
+        case 'semi-annually':
+          monthlyAmount /= 6;
+          break;
+        case 'annually':
+          monthlyAmount /= 12;
+          break;
+        case 'monthly':
+        default:
+          break;
+      }
+      return sum + monthlyAmount;
+    }, 0);
+  }, [fixedCosts]);
   
   return (
     <div className="bg-brand-surface p-6 rounded-3xl border border-brand-surface-alt">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold">Fixkosten <span className="text-sm text-brand-text-secondary">{fixedCosts.length}</span></h3>
+         {totalMonthlyCost > 0 && (
+          <p className="text-sm font-semibold text-brand-text">
+            €{totalMonthlyCost.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <span className="text-brand-text-secondary"> / Monat</span>
+          </p>
+        )}
       </div>
       
       <div className="space-y-2">

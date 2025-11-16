@@ -63,7 +63,7 @@ const EditTransactionModal: React.FC<EditTransactionModalProps> = ({ isOpen, onC
   
   useEffect(() => {
       if (isFixedCost && date && !billingDay) {
-        const day = new Date(date).getDate();
+        const day = new Date(date).getUTCDate();
         setBillingDay(String(day));
       }
   }, [isFixedCost, date, billingDay]);
@@ -91,7 +91,7 @@ const EditTransactionModal: React.FC<EditTransactionModalProps> = ({ isOpen, onC
     }
     
     let finalBillingDay: number | undefined = undefined;
-    if (isFixedCost && transactionType === 'expense') {
+    if (isFixedCost) {
         const parsedBillingDay = parseInt(billingDay, 10);
         if (!parsedBillingDay || parsedBillingDay < 1 || parsedBillingDay > 31) {
             setError('Bitte geben Sie einen gültigen Abrechnungstag (1-31) an.');
@@ -109,7 +109,7 @@ const EditTransactionModal: React.FC<EditTransactionModalProps> = ({ isOpen, onC
       cardId: Number(cardId),
       type: transactionType,
       destinationCardId: destinationCardId ? Number(destinationCardId) : undefined,
-      isFixedCost: isFixedCost && transactionType === 'expense',
+      isFixedCost,
       billingDay: finalBillingDay,
       frequency: isFixedCost ? frequency : undefined,
     });
@@ -147,7 +147,7 @@ const EditTransactionModal: React.FC<EditTransactionModalProps> = ({ isOpen, onC
             </div>
           </div>
           
-          {transactionType === 'expense' && (
+          {(transactionType === 'expense' || transactionType === 'transfer') && (
             <div className="flex items-center gap-3 py-2 -mt-2 mb-2">
               <input
                 type="checkbox"
@@ -187,7 +187,7 @@ const EditTransactionModal: React.FC<EditTransactionModalProps> = ({ isOpen, onC
             />
           </div>
           
-          {transactionType === 'transfer' ? (
+          {transactionType === 'transfer' && (
             <div>
                 <label htmlFor="transDestinationCardEdit" className="block text-sm font-medium text-brand-text-secondary mb-1">Übertrag an</label>
                 <select
@@ -204,7 +204,9 @@ const EditTransactionModal: React.FC<EditTransactionModalProps> = ({ isOpen, onC
                     ))}
                 </select>
             </div>
-          ) : isFixedCost ? (
+          )}
+          
+          {isFixedCost ? (
              <div className="space-y-4 bg-brand-surface p-4 rounded-lg">
                 <div>
                     <label htmlFor="transBillingDayEdit" className="block text-sm font-medium text-brand-text-secondary mb-1">Abrechnungstag im Monat</label>
@@ -235,7 +237,7 @@ const EditTransactionModal: React.FC<EditTransactionModalProps> = ({ isOpen, onC
                     </select>
                 </div>
              </div>
-          ) : (
+          ) : ( transactionType !== 'transfer' &&
              <div>
                 <label htmlFor="transCategoryEdit" className="block text-sm font-medium text-brand-text-secondary mb-1">Kategorie</label>
                 <select
@@ -250,8 +252,22 @@ const EditTransactionModal: React.FC<EditTransactionModalProps> = ({ isOpen, onC
                 </select>
             </div>
           )}
-
-          <div>
+           <div>
+             <label htmlFor="transSourceCardEdit" className="block text-sm font-medium text-brand-text-secondary mb-1">{transactionType === 'transfer' ? 'Übertrag von' : 'Karte'}</label>
+             <select
+                 id="transSourceCardEdit"
+                 value={cardId}
+                 onChange={e => setCardId(Number(e.target.value))}
+                 className="w-full bg-brand-surface p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white appearance-none"
+             >
+                 {cards.map(card => (
+                     <option key={card.id} value={card.id}>
+                         {card.title} - **** {card.number.slice(-4)}
+                     </option>
+                 ))}
+             </select>
+         </div>
+         <div>
             <label htmlFor="transDateEdit" className="block text-sm font-medium text-brand-text-secondary mb-1">Datum</label>
             <input
               type="date"

@@ -60,6 +60,7 @@ export interface Transaction {
     isFixedCost?: boolean;
     billingDay?: number;
     frequency?: 'monthly' | 'bimonthly' | 'quarterly' | 'semi-annually' | 'annually';
+    endDate?: string;
     isFuture?: boolean;
 }
 

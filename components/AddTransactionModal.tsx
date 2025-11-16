@@ -62,9 +62,10 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
     } else if (transactionType === 'expense') {
       setCategory(expenseCategories[0]);
     } else if (transactionType === 'transfer') {
-        setIsFixedCost(false);
+      setCategory('Übertrag');
     }
   }, [transactionType]);
+
 
   useEffect(() => {
       if (isFixedCost && date && !billingDay) {
@@ -96,7 +97,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
     }
     
     let finalBillingDay: number | undefined = undefined;
-    if (isFixedCost && transactionType === 'expense') {
+    if (isFixedCost) {
         const parsedBillingDay = parseInt(billingDay, 10);
         if (!parsedBillingDay || parsedBillingDay < 1 || parsedBillingDay > 31) {
             setError('Bitte geben Sie einen gültigen Abrechnungstag (1-31) an.');
@@ -109,11 +110,11 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
       name,
       amount: parsedAmount,
       date,
-      category: isFixedCost ? 'Fixkosten' : (transactionType === 'transfer' ? 'Übertrag' : category),
+      category: isFixedCost ? 'Fixkosten' : category,
       cardId: Number(cardId),
       type: transactionType,
       destinationCardId: destinationCardId ? Number(destinationCardId) : undefined,
-      isFixedCost: isFixedCost && transactionType === 'expense',
+      isFixedCost,
       billingDay: finalBillingDay,
       frequency: isFixedCost ? frequency : undefined,
     });
@@ -151,7 +152,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
             </div>
           </div>
           
-          {transactionType === 'expense' && (
+          {(transactionType === 'expense' || transactionType === 'transfer') && (
             <div className="flex items-center gap-3 py-2 -mt-2 mb-2">
               <input
                 type="checkbox"
@@ -207,7 +208,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
              </select>
          </div>
 
-          {transactionType === 'transfer' ? (
+          {transactionType === 'transfer' && (
             <div>
                 <label htmlFor="transDestinationCardAdd" className="block text-sm font-medium text-brand-text-secondary mb-1">Übertrag an</label>
                 <select
@@ -224,7 +225,9 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
                     ))}
                 </select>
             </div>
-          ) : isFixedCost ? (
+          )}
+
+          {isFixedCost ? (
              <div className="space-y-4 bg-brand-surface p-4 rounded-lg">
                 <div>
                     <label htmlFor="transBillingDayAdd" className="block text-sm font-medium text-brand-text-secondary mb-1">Abrechnungstag im Monat</label>
@@ -255,7 +258,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
                     </select>
                 </div>
              </div>
-          ) : (
+          ) : ( transactionType !== 'transfer' &&
              <div>
                 <label htmlFor="transCategoryAdd" className="block text-sm font-medium text-brand-text-secondary mb-1">Kategorie</label>
                 <select

@@ -91,24 +91,21 @@ const App: React.FC = () => {
     const viennaTimeZone = 'Europe/Vienna';
     const now = new Date();
     
-    // Get today's date string in Vienna (YYYY-MM-DD format) to establish a clear "today"
     const todayViennaStr = now.toLocaleDateString('en-CA', { timeZone: viennaTimeZone });
-    // Create a date object for midnight UTC on that day for consistent comparisons
     const today = new Date(`${todayViennaStr}T00:00:00.000Z`);
     
-    // Get current year and month from the Vienna date string
     const [currentViennaYear, currentViennaMonth] = todayViennaStr.split('-').map(Number);
     const currentViennaMonthIndex = currentViennaMonth - 1; // JS month is 0-indexed
 
     for (let i = -12; i <= 24; i++) {
-      // Use UTC dates for all calculations to avoid local timezone interference
       const targetDate = new Date(Date.UTC(currentViennaYear, currentViennaMonthIndex + i, 1));
       const targetYear = targetDate.getUTCFullYear();
       const targetMonth = targetDate.getUTCMonth();
 
       fixedCostTemplates.forEach(fc => {
         if (fc.billingDay) {
-          const templateStartDate = new Date(fc.date); // Date strings are parsed as UTC midnight
+          const templateStartDate = new Date(fc.date);
+          const templateEndDate = fc.endDate ? new Date(fc.endDate) : null;
           const templateStartYear = templateStartDate.getUTCFullYear();
           const templateStartMonth = templateStartDate.getUTCMonth();
 
@@ -131,6 +128,10 @@ const App: React.FC = () => {
             const day = Math.min(fc.billingDay, daysInMonth);
             const transactionFullDate = new Date(Date.UTC(targetYear, targetMonth, day));
             
+            if (templateEndDate && transactionFullDate > templateEndDate) {
+                return; 
+            }
+
             generatedTransactions.push({
               ...fc,
               id: `fc-${fc.id}-${targetYear}-${targetMonth}`,
@@ -198,7 +199,7 @@ const App: React.FC = () => {
     let newTransactionsToAdd: Transaction[] = [];
     
     if (newTransactionData.type === 'transfer') {
-      const { destinationCardId, amount, cardId, date, name } = newTransactionData;
+      const { destinationCardId, amount, cardId, date, name, isFixedCost, billingDay, frequency } = newTransactionData;
       const sourceCard = cards.find(c => c.id === cardId);
       const destCard = cards.find(c => c.id === destinationCardId);
 
@@ -209,21 +210,27 @@ const App: React.FC = () => {
           id: `transfer-source-${transferId}`,
           cardId: cardId,
           name: name || `Übertrag an ${destCard.title}`,
-          category: 'Übertrag',
+          category: isFixedCost ? 'Fixkosten' : 'Übertrag',
           date: date,
           amount: -amount,
           type: 'transfer',
           transferId: transferId,
+          isFixedCost,
+          billingDay,
+          frequency,
       };
       const destTransaction: Transaction = {
           id: `transfer-dest-${transferId}`,
           cardId: destinationCardId,
           name: name || `Übertrag von ${sourceCard.title}`,
-          category: 'Übertrag',
+          category: isFixedCost ? 'Fixkosten' : 'Übertrag',
           date: date,
           amount: amount,
           type: 'transfer',
           transferId: transferId,
+          isFixedCost,
+          billingDay,
+          frequency,
       };
       newTransactionsToAdd.push(sourceTransaction, destTransaction);
     } else {
@@ -277,52 +284,107 @@ const App: React.FC = () => {
     const originalTransaction = manualTransactions.find(t => t.id === updatePayload.id);
     if (!originalTransaction) return;
 
-    // Logic to convert a regular transaction into a new fixed cost template,
-    // and automatically group similar past transactions.
+    const isAmountChanging = Math.abs(originalTransaction.amount) !== updatePayload.amount;
+
+    if (originalTransaction.isFixedCost && isAmountChanging && originalTransaction.type === 'expense') {
+        const today = new Date();
+        let nextBillingDate: Date | null = null;
+        const templateStartDate = new Date(originalTransaction.date);
+        let checkDate = new Date(Date.UTC(templateStartDate.getUTCFullYear(), templateStartDate.getUTCMonth(), 1));
+
+        for (let i = 0; i < 60; i++) { // Check up to 5 years
+            const year = checkDate.getUTCFullYear();
+            const month = checkDate.getUTCMonth();
+            const templateStartYear = templateStartDate.getUTCFullYear();
+            const templateStartMonth = templateStartDate.getUTCMonth();
+            const monthsDiff = (year - templateStartYear) * 12 + (month - templateStartMonth);
+
+            if (monthsDiff >= 0) {
+                let shouldGenerate = false;
+                const frequency = originalTransaction.frequency || 'monthly';
+                switch (frequency) {
+                    case 'monthly': shouldGenerate = true; break;
+                    case 'bimonthly': shouldGenerate = monthsDiff % 2 === 0; break;
+                    case 'quarterly': shouldGenerate = monthsDiff % 3 === 0; break;
+                    case 'semi-annually': shouldGenerate = monthsDiff % 6 === 0; break;
+                    case 'annually': shouldGenerate = monthsDiff % 12 === 0; break;
+                }
+
+                if (shouldGenerate) {
+                    const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+                    const day = Math.min(originalTransaction.billingDay!, daysInMonth);
+                    const potentialBillingDate = new Date(Date.UTC(year, month, day));
+                    if (potentialBillingDate > today) {
+                        nextBillingDate = potentialBillingDate;
+                        break;
+                    }
+                }
+            }
+            checkDate.setUTCMonth(checkDate.getUTCMonth() + 1);
+        }
+
+        if (nextBillingDate) {
+            const endDate = new Date(nextBillingDate);
+            endDate.setUTCDate(endDate.getUTCDate() - 1);
+
+            const updatedOriginalTemplate: Transaction = {
+                ...originalTransaction,
+                endDate: endDate.toISOString().split('T')[0],
+            };
+            const newFutureTemplate: Transaction = {
+                ...updatePayload,
+                id: Date.now(),
+                amount: -Math.abs(updatePayload.amount),
+                date: nextBillingDate.toISOString().split('T')[0],
+            };
+            
+            await db.put(db.STORES.manualTransactions, updatedOriginalTemplate);
+            await db.add(db.STORES.manualTransactions, newFutureTemplate);
+            
+            setManualTransactions(prev => [
+                ...prev.filter(t => t.id !== originalTransaction.id),
+                updatedOriginalTemplate,
+                newFutureTemplate
+            ]);
+            return;
+        }
+    }
+
     if (!originalTransaction.isFixedCost && updatePayload.isFixedCost) {
-        // Find all past, non-fixed-cost transactions that match the name and amount
         const matchingTransactions = manualTransactions.filter(t => 
             t.name === updatePayload.name && 
             Math.abs(t.amount) === updatePayload.amount &&
             !t.isFixedCost
         );
-
         if (matchingTransactions.length > 0) {
-            // Find the earliest date to set as the start date for the template
             const earliestDate = matchingTransactions.reduce((earliest, current) => {
                 return new Date(current.date) < new Date(earliest) ? current.date : earliest;
             }, matchingTransactions[0].date);
-
             const newFixedCostTemplate: Transaction = {
                 id: Date.now(),
                 cardId: updatePayload.cardId,
                 name: updatePayload.name,
                 category: 'Fixkosten',
-                date: earliestDate, // Use the earliest date as the start date
+                date: earliestDate,
                 amount: -Math.abs(updatePayload.amount),
                 type: 'expense',
                 isFixedCost: true,
                 billingDay: updatePayload.billingDay,
                 frequency: updatePayload.frequency || 'monthly',
             };
-
             const idsToDelete = matchingTransactions.map(t => t.id);
-
-            // Batch update database and state
             for (const id of idsToDelete) {
                 await db.deleteItem(db.STORES.manualTransactions, id);
             }
             await db.add(db.STORES.manualTransactions, newFixedCostTemplate);
-
             setManualTransactions(prev => [
                 ...prev.filter(t => !idsToDelete.includes(t.id)),
                 newFixedCostTemplate
             ]);
         }
-        return; // Exit after conversion
+        return;
     }
     
-    // Fallback for converting a single transaction without matches (same as before)
     if (!originalTransaction.isFixedCost && updatePayload.isFixedCost) {
         const newFixedCostTemplate: Transaction = {
             id: Date.now(),
@@ -357,7 +419,7 @@ const App: React.FC = () => {
 
     let transactionsToAdd: Transaction[] = [];
     if (updatePayload.type === 'transfer') {
-        const { destinationCardId, amount, cardId, date, name } = updatePayload;
+        const { destinationCardId, amount, cardId, date, name, isFixedCost, billingDay, frequency } = updatePayload;
         const sourceCard = cards.find(c => c.id === cardId);
         const destCard = cards.find(c => c.id === destinationCardId);
 
@@ -369,21 +431,23 @@ const App: React.FC = () => {
             id: originalTransaction.id,
             cardId: cardId,
             name: name || `Übertrag an ${destCard.title}`,
-            category: 'Übertrag',
+            category: isFixedCost ? 'Fixkosten' : 'Übertrag',
             date: date,
             amount: -amount,
             type: 'transfer',
             transferId: transferId,
+            isFixedCost, billingDay, frequency
         };
         const destTransaction: Transaction = {
             id: `transfer-dest-${transferId}`,
             cardId: destinationCardId,
             name: name || `Übertrag von ${sourceCard.title}`,
-            category: 'Übertrag',
+            category: isFixedCost ? 'Fixkosten' : 'Übertrag',
             date: date,
             amount: amount,
             type: 'transfer',
             transferId: transferId,
+            isFixedCost, billingDay, frequency
         };
         transactionsToAdd.push(sourceTransaction, destTransaction);
     } else {
@@ -699,5 +763,4 @@ const App: React.FC = () => {
   );
 };
 
-// FIX: Add default export to the App component to resolve the import error.
 export default App;

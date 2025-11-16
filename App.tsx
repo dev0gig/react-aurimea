@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import Header from './components/Header';
 import DashboardPage from './components/DashboardPage';
@@ -5,8 +6,6 @@ import TransactionsPage from './components/TransactionsPage';
 import StatisticsPage from './components/StatisticsPage';
 import SearchModal from './components/SearchModal';
 import AddTransactionModal from './components/AddTransactionModal';
-import AddFixedCostModal from './components/AddFixedCostModal';
-import EditFixedCostModal from './components/EditFixedCostModal';
 import EditTransactionModal from './components/EditTransactionModal';
 import ConfirmationModal from './components/ConfirmationModal';
 import SettingsModal from './components/SettingsModal';
@@ -17,16 +16,13 @@ import {
   cards as initialCards, 
   Card, 
   transactions as initialTransactions, 
-  Transaction,
-  fixedCosts as initialFixedCosts,
-  FixedCost
+  Transaction
 } from './data/mockData';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Übersicht');
   const [cards, setCards] = useState<Card[]>([]);
   const [manualTransactions, setManualTransactions] = useState<Transaction[]>([]);
-  const [fixedCosts, setFixedCosts] = useState<FixedCost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
@@ -35,47 +31,40 @@ const App: React.FC = () => {
   // Modal States
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSettingsModalOpen, setSettingsModalOpen] = useState(false);
-  const [isAddFixedCostModalOpen, setAddFixedCostModalOpen] = useState(false);
   const [isAddTransactionModalOpen, setAddTransactionModalOpen] = useState(false);
   const [cardIdForNewTransaction, setCardIdForNewTransaction] = useState<number | null>(null);
-  const [isEditFixedCostModalOpen, setEditFixedCostModalOpen] = useState(false);
   const [isEditTransactionModalOpen, setEditTransactionModalOpen] = useState(false);
   const [isEditCardModalOpen, setEditCardModalOpen] = useState(false);
   const [isConfirmationModalOpen, setConfirmationModalOpen] = useState(false);
   const [isDeleteAllConfirmationOpen, setDeleteAllConfirmationOpen] = useState(false);
   
-  const [fixedCostToEdit, setFixedCostToEdit] = useState<FixedCost | null>(null);
   const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
   const [cardToEdit, setCardToEdit] = useState<Card | null>(null);
-  const [itemToDelete, setItemToDelete] = useState<{ id: number | string; type: 'transaction' | 'fixedCost' } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ id: number | string; type: 'transaction' } | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         await db.initDB();
-        const [dbCards, dbManualTransactions, dbFixedCosts] = await Promise.all([
+        const [dbCards, dbManualTransactions] = await Promise.all([
           db.getAll<Card>(db.STORES.cards),
           db.getAll<Transaction>(db.STORES.manualTransactions),
-          db.getAll<FixedCost>(db.STORES.fixedCosts),
         ]);
 
-        if (dbCards.length === 0 && dbManualTransactions.length === 0 && dbFixedCosts.length === 0) {
+        if (dbCards.length === 0 && dbManualTransactions.length === 0) {
           // First time load, populate DB with mock data
           await Promise.all([
             db.bulkAdd(db.STORES.cards, initialCards),
             db.bulkAdd(db.STORES.manualTransactions, initialTransactions),
-            db.bulkAdd(db.STORES.fixedCosts, initialFixedCosts),
           ]);
           setCards(initialCards);
           setManualTransactions(initialTransactions);
-          setFixedCosts(initialFixedCosts);
           if (initialCards.length > 0) {
             setSelectedCardId(initialCards[0].id);
           }
         } else {
           setCards(dbCards);
           setManualTransactions(dbManualTransactions);
-          setFixedCosts(dbFixedCosts);
            if (dbCards.length > 0) {
             setSelectedCardId(dbCards[0].id);
           }
@@ -85,7 +74,6 @@ const App: React.FC = () => {
         // Fallback to initial data if DB fails
         setCards(initialCards);
         setManualTransactions(initialTransactions);
-        setFixedCosts(initialFixedCosts);
       } finally {
         setIsLoading(false);
       }
@@ -97,31 +85,64 @@ const App: React.FC = () => {
   const navItems = ['Übersicht', 'Transaktionen', 'Statistiken'];
 
   const combinedTransactions = useMemo(() => {
+    const fixedCostTemplates = manualTransactions.filter(t => t.isFixedCost);
     const generatedTransactions: Transaction[] = [];
     const today = new Date();
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth();
+    today.setHours(0, 0, 0, 0);
+    
+    const todayForMonthComparison = new Date();
 
-    fixedCosts.forEach(sub => {
-      if (today.getDate() >= sub.billingDay) {
-        const transactionDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(sub.billingDay).padStart(2, '0')}`;
-        generatedTransactions.push({
-          id: `sub-${sub.id}-${currentYear}-${currentMonth}`,
-          cardId: sub.cardId,
-          name: sub.name,
-          category: 'Fixkosten',
-          date: transactionDate,
-          amount: -sub.amount,
-          type: 'expense'
-        });
-      }
-    });
+    for (let i = -12; i <= 24; i++) {
+      const targetDate = new Date(todayForMonthComparison.getFullYear(), todayForMonthComparison.getMonth() + i, 1);
+      const targetYear = targetDate.getFullYear();
+      const targetMonth = targetDate.getMonth();
 
-    const all = [...manualTransactions, ...generatedTransactions];
-    const unique = Array.from(new Map(all.map(t => [t.id, t])).values());
-    return unique.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      fixedCostTemplates.forEach(fc => {
+        if (fc.billingDay) {
+          const templateStartDate = new Date(fc.date);
+          const templateStartYear = templateStartDate.getFullYear();
+          const templateStartMonth = templateStartDate.getMonth();
 
-  }, [fixedCosts, manualTransactions]);
+          const monthsDiff = (targetYear - templateStartYear) * 12 + (targetMonth - templateStartMonth);
+          if (monthsDiff < 0) return;
+
+          let shouldGenerate = false;
+          const frequency = fc.frequency || 'monthly';
+          switch (frequency) {
+            case 'monthly': shouldGenerate = true; break;
+            case 'bimonthly': shouldGenerate = monthsDiff % 2 === 0; break;
+            case 'quarterly': shouldGenerate = monthsDiff % 3 === 0; break;
+            case 'semi-annually': shouldGenerate = monthsDiff % 6 === 0; break;
+            case 'annually': shouldGenerate = monthsDiff % 12 === 0; break;
+            default: shouldGenerate = true;
+          }
+
+          if (shouldGenerate) {
+            const daysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+            const day = Math.min(fc.billingDay, daysInMonth);
+            const transactionFullDate = new Date(targetYear, targetMonth, day);
+            
+            generatedTransactions.push({
+              ...fc,
+              id: `fc-${fc.id}-${targetYear}-${targetMonth}`,
+              date: transactionFullDate.toISOString().split('T')[0],
+              category: 'Fixkosten',
+              isFuture: transactionFullDate > today,
+            });
+          }
+        }
+      });
+    }
+
+    const allTransactions = [
+      ...manualTransactions.filter(t => !t.isFixedCost),
+      ...generatedTransactions
+    ];
+
+    const uniqueTransactions = Array.from(new Map(allTransactions.map(t => [t.id, t])).values());
+
+    return uniqueTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [manualTransactions]);
 
   const handleAddCard = async (newCardData: Omit<Card, 'id'>) => {
     const newCard: Card = {
@@ -147,16 +168,6 @@ const App: React.FC = () => {
     setEditCardModalOpen(false);
   };
 
-  const handleAddFixedCost = async (newSubData: Omit<FixedCost, 'id'>) => {
-    const newSub: FixedCost = {
-      ...newSubData,
-      id: Date.now(),
-    };
-    await db.add(db.STORES.fixedCosts, newSub);
-    setFixedCosts(prevSubs => [...prevSubs, newSub]);
-    setAddFixedCostModalOpen(false);
-  };
-
   const handleOpenAddTransactionModal = (cardId: number | null) => {
     setCardIdForNewTransaction(cardId);
     setAddTransactionModalOpen(true);
@@ -170,6 +181,9 @@ const App: React.FC = () => {
     cardId: number;
     type: 'income' | 'expense' | 'transfer';
     destinationCardId?: number;
+    isFixedCost?: boolean;
+    billingDay?: number;
+    frequency?: 'monthly' | 'bimonthly' | 'quarterly' | 'semi-annually' | 'annually';
   }) => {
     setAddTransactionModalOpen(false);
     let newTransactionsToAdd: Transaction[] = [];
@@ -218,47 +232,108 @@ const App: React.FC = () => {
     }
     setManualTransactions(prev => [...prev, ...newTransactionsToAdd]);
   }
-
-  const handleOpenEditFixedCostModal = (subId: number) => {
-    const sub = fixedCosts.find(s => s.id === subId);
-    if (sub) {
-      setFixedCostToEdit(sub);
-      setEditFixedCostModalOpen(true);
-    }
-  };
-
-  const handleUpdateFixedCost = async (updatedSub: FixedCost) => {
-    await db.put(db.STORES.fixedCosts, updatedSub);
-    setFixedCosts(prev => prev.map(s => s.id === updatedSub.id ? updatedSub : s));
-    setEditFixedCostModalOpen(false);
-  };
   
   const handleOpenEditTransactionModal = (transId: number | string) => {
-    const trans = manualTransactions.find(t => t.id === transId);
-    if (trans) {
-        setTransactionToEdit(trans);
-        setEditTransactionModalOpen(true);
+    if (typeof transId === 'string' && transId.startsWith('fc-')) {
+        const originalId = parseInt(transId.split('-')[1], 10);
+        const originalTrans = manualTransactions.find(t => t.id === originalId);
+        if (originalTrans) {
+          setTransactionToEdit(originalTrans);
+          setEditTransactionModalOpen(true);
+        }
+    } else {
+        const trans = manualTransactions.find(t => t.id === transId);
+        if (trans) {
+            setTransactionToEdit(trans);
+            setEditTransactionModalOpen(true);
+        }
     }
   };
   
  const handleUpdateTransaction = async (updatePayload: {
     id: number | string;
     name: string;
-    amount: number; // always positive from modal
+    amount: number;
     date: string;
     category: string;
     cardId: number;
     type: 'income' | 'expense' | 'transfer';
     destinationCardId?: number;
+    isFixedCost?: boolean;
+    billingDay?: number;
+    frequency?: 'monthly' | 'bimonthly' | 'quarterly' | 'semi-annually' | 'annually';
   }) => {
     setEditTransactionModalOpen(false);
     
     const originalTransaction = manualTransactions.find(t => t.id === updatePayload.id);
     if (!originalTransaction) return;
 
+    // Logic to convert a regular transaction into a new fixed cost template,
+    // and automatically group similar past transactions.
+    if (!originalTransaction.isFixedCost && updatePayload.isFixedCost) {
+        // Find all past, non-fixed-cost transactions that match the name and amount
+        const matchingTransactions = manualTransactions.filter(t => 
+            t.name === updatePayload.name && 
+            Math.abs(t.amount) === updatePayload.amount &&
+            !t.isFixedCost
+        );
+
+        if (matchingTransactions.length > 0) {
+            // Find the earliest date to set as the start date for the template
+            const earliestDate = matchingTransactions.reduce((earliest, current) => {
+                return new Date(current.date) < new Date(earliest) ? current.date : earliest;
+            }, matchingTransactions[0].date);
+
+            const newFixedCostTemplate: Transaction = {
+                id: Date.now(),
+                cardId: updatePayload.cardId,
+                name: updatePayload.name,
+                category: 'Fixkosten',
+                date: earliestDate, // Use the earliest date as the start date
+                amount: -Math.abs(updatePayload.amount),
+                type: 'expense',
+                isFixedCost: true,
+                billingDay: updatePayload.billingDay,
+                frequency: updatePayload.frequency || 'monthly',
+            };
+
+            const idsToDelete = matchingTransactions.map(t => t.id);
+
+            // Batch update database and state
+            for (const id of idsToDelete) {
+                await db.deleteItem(db.STORES.manualTransactions, id);
+            }
+            await db.add(db.STORES.manualTransactions, newFixedCostTemplate);
+
+            setManualTransactions(prev => [
+                ...prev.filter(t => !idsToDelete.includes(t.id)),
+                newFixedCostTemplate
+            ]);
+        }
+        return; // Exit after conversion
+    }
+    
+    // Fallback for converting a single transaction without matches (same as before)
+    if (!originalTransaction.isFixedCost && updatePayload.isFixedCost) {
+        const newFixedCostTemplate: Transaction = {
+            id: Date.now(),
+            cardId: updatePayload.cardId,
+            name: updatePayload.name,
+            category: 'Fixkosten',
+            date: updatePayload.date,
+            amount: -Math.abs(updatePayload.amount),
+            type: 'expense',
+            isFixedCost: true,
+            billingDay: updatePayload.billingDay,
+            frequency: updatePayload.frequency || 'monthly',
+        };
+        await db.add(db.STORES.manualTransactions, newFixedCostTemplate);
+        setManualTransactions(prev => [...prev, newFixedCostTemplate]);
+        return;
+    }
+
     let updatedTransactionList = [...manualTransactions];
 
-    // 1. Remove old transactions from DB and create a temporary state
     if (originalTransaction.type === 'transfer' && originalTransaction.transferId) {
         const transferId = originalTransaction.transferId;
         const transactionsInTransfer = updatedTransactionList.filter(t => t.transferId === transferId);
@@ -271,7 +346,6 @@ const App: React.FC = () => {
         updatedTransactionList = updatedTransactionList.filter(t => t.id !== originalTransaction.id);
     }
 
-    // 2. Prepare new transactions to add
     let transactionsToAdd: Transaction[] = [];
     if (updatePayload.type === 'transfer') {
         const { destinationCardId, amount, cardId, date, name } = updatePayload;
@@ -309,49 +383,108 @@ const App: React.FC = () => {
             id: originalTransaction.id,
             cardId: updatePayload.cardId,
             name: updatePayload.name,
-            category: updatePayload.category,
+            category: updatePayload.isFixedCost ? 'Fixkosten' : updatePayload.category,
             date: updatePayload.date,
             amount: finalAmount,
             type: updatePayload.type,
+            isFixedCost: updatePayload.isFixedCost,
+            billingDay: updatePayload.billingDay,
+            frequency: updatePayload.frequency,
         };
         transactionsToAdd.push(updatedTransaction);
     }
 
-    // 3. Add new transactions to DB
     for(const t of transactionsToAdd) {
         await db.add(db.STORES.manualTransactions, t);
     }
     
-    // 4. Update state with the final list
     setManualTransactions([...updatedTransactionList, ...transactionsToAdd]);
   };
 
-  const handleDeleteRequest = (id: number | string, type: 'transaction' | 'fixedCost') => {
-    setItemToDelete({ id, type });
+  const handleDeleteRequest = (id: number | string) => {
+    let idToDelete = id;
+    if (typeof id === 'string' && id.startsWith('fc-')) {
+        idToDelete = parseInt(id.split('-')[1], 10);
+    }
+    setItemToDelete({ id: idToDelete, type: 'transaction' });
     setConfirmationModalOpen(true);
   };
   
   const confirmDelete = async () => {
     if (!itemToDelete) return;
+    
+    const transactionToDelete = manualTransactions.find(t => t.id === itemToDelete.id);
+    if (transactionToDelete) {
+        if (transactionToDelete.isFixedCost) {
+            const pastOccurrencesToSave: Transaction[] = [];
+            const templateStartDate = new Date(transactionToDelete.date);
+            const today = new Date();
+            
+            let currentDate = new Date(templateStartDate.getFullYear(), templateStartDate.getMonth(), 1);
+            
+            while(currentDate <= today) {
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+                
+                const templateStartMonth = templateStartDate.getMonth();
+                const templateStartYear = templateStartDate.getFullYear();
+                const monthsDiff = (year - templateStartYear) * 12 + (month - templateStartMonth);
+                
+                let shouldGenerate = false;
+                if (monthsDiff >= 0) {
+                    const frequency = transactionToDelete.frequency || 'monthly';
+                    switch (frequency) {
+                        case 'monthly': shouldGenerate = true; break;
+                        case 'bimonthly': shouldGenerate = monthsDiff % 2 === 0; break;
+                        case 'quarterly': shouldGenerate = monthsDiff % 3 === 0; break;
+                        case 'semi-annually': shouldGenerate = monthsDiff % 6 === 0; break;
+                        case 'annually': shouldGenerate = monthsDiff % 12 === 0; break;
+                        default: shouldGenerate = true;
+                    }
+                }
 
-    if (itemToDelete.type === 'fixedCost') {
-      await db.deleteItem(db.STORES.fixedCosts, itemToDelete.id);
-      setFixedCosts(prev => prev.filter(s => s.id !== itemToDelete.id));
-    } else if (itemToDelete.type === 'transaction') {
-      const transactionToDelete = manualTransactions.find(t => t.id === itemToDelete.id);
-      if (transactionToDelete) {
-          if (transactionToDelete.type === 'transfer' && transactionToDelete.transferId) {
-              const transferId = transactionToDelete.transferId;
-              const allTransactionsInTransfer = manualTransactions.filter(t => t.transferId === transferId);
-              for (const t of allTransactionsInTransfer) {
-                  await db.deleteItem(db.STORES.manualTransactions, t.id);
-              }
-              setManualTransactions(prev => prev.filter(t => t.transferId !== transferId));
-          } else {
-              await db.deleteItem(db.STORES.manualTransactions, itemToDelete.id);
-              setManualTransactions(prev => prev.filter(t => t.id !== itemToDelete.id));
-          }
-      }
+                if (shouldGenerate) {
+                    const daysInMonth = new Date(year, month + 1, 0).getDate();
+                    const day = Math.min(transactionToDelete.billingDay!, daysInMonth);
+                    const transactionFullDate = new Date(year, month, day);
+
+                    if (transactionFullDate <= today) {
+                        pastOccurrencesToSave.push({
+                            ...transactionToDelete,
+                            id: `hist-${transactionToDelete.id}-${year}-${month}`,
+                            date: transactionFullDate.toISOString().split('T')[0],
+                            isFixedCost: false,
+                            billingDay: undefined,
+                            frequency: undefined,
+                        });
+                    }
+                }
+                
+                currentDate.setMonth(currentDate.getMonth() + 1);
+            }
+
+            if (pastOccurrencesToSave.length > 0) {
+                await db.bulkAdd(db.STORES.manualTransactions, pastOccurrencesToSave);
+            }
+            
+            await db.deleteItem(db.STORES.manualTransactions, transactionToDelete.id);
+
+            setManualTransactions(prev => [
+                ...prev.filter(t => t.id !== transactionToDelete.id),
+                ...pastOccurrencesToSave
+            ]);
+
+        } else if (transactionToDelete.type === 'transfer' && transactionToDelete.transferId) {
+            const transferId = transactionToDelete.transferId;
+            const allTransactionsInTransfer = manualTransactions.filter(t => t.transferId === transferId);
+            for (const t of allTransactionsInTransfer) {
+                await db.deleteItem(db.STORES.manualTransactions, t.id);
+            }
+            setManualTransactions(prev => prev.filter(t => t.transferId !== transferId));
+        } else {
+            await db.deleteItem(db.STORES.manualTransactions, itemToDelete.id);
+            setManualTransactions(prev => prev.filter(t => t.id !== itemToDelete.id));
+        }
     }
     
     setConfirmationModalOpen(false);
@@ -362,7 +495,6 @@ const App: React.FC = () => {
     const dataToExport = {
       cards: await db.getAll<Card>(db.STORES.cards),
       manualTransactions: await db.getAll<Transaction>(db.STORES.manualTransactions),
-      fixedCosts: await db.getAll<FixedCost>(db.STORES.fixedCosts)
     };
     const dataStr = JSON.stringify(dataToExport, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
@@ -386,22 +518,19 @@ const App: React.FC = () => {
         if (typeof text !== 'string') throw new Error("File could not be read");
         const importedData = JSON.parse(text);
 
-        if (Array.isArray(importedData.cards) && Array.isArray(importedData.manualTransactions) && Array.isArray(importedData.fixedCosts)) {
+        if (Array.isArray(importedData.cards) && Array.isArray(importedData.manualTransactions)) {
           await Promise.all([
             db.clearStore(db.STORES.cards),
             db.clearStore(db.STORES.manualTransactions),
-            db.clearStore(db.STORES.fixedCosts)
           ]);
 
           await Promise.all([
             db.bulkAdd(db.STORES.cards, importedData.cards),
             db.bulkAdd(db.STORES.manualTransactions, importedData.manualTransactions),
-            db.bulkAdd(db.STORES.fixedCosts, importedData.fixedCosts)
           ]);
           
           setCards(importedData.cards);
           setManualTransactions(importedData.manualTransactions);
-          setFixedCosts(importedData.fixedCosts);
 
           alert('Daten erfolgreich importiert!');
           setSettingsModalOpen(false);
@@ -426,11 +555,9 @@ const App: React.FC = () => {
       await Promise.all([
         db.clearStore(db.STORES.cards),
         db.clearStore(db.STORES.manualTransactions),
-        db.clearStore(db.STORES.fixedCosts)
       ]);
       setCards([]);
       setManualTransactions([]);
-      setFixedCosts([]);
       setDeleteAllConfirmationOpen(false);
   };
 
@@ -445,152 +572,90 @@ const App: React.FC = () => {
     setActiveTab('Transaktionen');
   };
 
-  const handleFixedCostNavigation = (fixedCostId: number) => {
-    const sub = fixedCosts.find(s => s.id === fixedCostId);
-    if (!sub) return;
-
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth();
-    const transactionId = `sub-${sub.id}-${currentYear}-${currentMonth}`;
-    
-    const transactionExists = combinedTransactions.some(t => t.id === transactionId);
-    if (transactionExists) {
-      setSelectedCardId(sub.cardId);
-      setSelectedTransactionId(transactionId);
-      setActiveTab('Transaktionen');
+  const handleFixedCostNavigation = (transactionId: number | string) => {
+    const transaction = manualTransactions.find(t => t.id === transactionId);
+    if(transaction) {
+      handleTransactionNavigation(transaction.id, transaction.cardId);
     }
   };
-  
-  const handleSearchNavigation = (transactionId: number | string, cardId: number) => {
-    setSelectedCardId(cardId);
-    setSelectedTransactionId(transactionId);
-    setActiveTab('Transaktionen');
-    setIsSearchOpen(false);
-  };
-  
-  const getConfirmationMessage = () => {
-    if (!itemToDelete) return { title: '', message: '' };
-    if (itemToDelete.type === 'fixedCost') {
-      const sub = fixedCosts.find(s => s.id === itemToDelete.id);
-      return {
-        title: 'Fixkosten löschen',
-        message: `Möchten Sie die Fixkosten "${sub?.name}" wirklich endgültig löschen?`
-      };
-    }
-    const trans = manualTransactions.find(t => t.id === itemToDelete.id);
-    const isTransfer = trans?.type === 'transfer';
-    return {
-      title: 'Transaktion löschen',
-      message: `Möchten Sie die Transaktion "${trans?.name}" wirklich endgültig löschen? ${isTransfer ? 'Der zugehörige Übertrag wird ebenfalls gelöscht.' : ''}`
-    };
-  };
-
-  if (isLoading) {
-    return (
-        <div className="bg-brand-bg min-h-screen text-brand-text font-sans p-4 lg:p-8 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-4">
-                <span className="material-symbols-outlined text-5xl animate-spin">progress_activity</span>
-                <p className="text-xl text-brand-text-secondary">Daten werden geladen...</p>
-            </div>
-        </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen text-brand-text font-sans p-4 lg:p-8 pb-20 md:pb-8">
-      <div id="stars-container">
-        <div id="stars1" className="stars"></div>
-        <div id="stars2" className="stars"></div>
-        <div id="stars3" className="stars"></div>
+    <div className="bg-brand-background text-brand-text font-sans min-h-screen pb-20 md:pb-0">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <Header activeTab={activeTab} setActiveTab={setActiveTab} navItems={navItems} onSearchClick={() => setIsSearchOpen(true)} onSettingsClick={() => setSettingsModalOpen(true)} />
+        {isLoading ? (
+            <div className="flex justify-center items-center h-[70vh]">
+              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-purple-500"></div>
+            </div>
+        ) : (
+          <>
+            {activeTab === 'Übersicht' && (
+              <DashboardPage
+                cards={cards}
+                selectedCardId={selectedCardId}
+                onCardNavigate={handleCardNavigation}
+                onAddCard={handleAddCard}
+                onEditCard={handleOpenEditCardModal}
+                transactions={combinedTransactions}
+                manualTransactions={manualTransactions}
+                onTransactionNavigate={handleTransactionNavigation}
+                onAddTransactionClick={handleOpenAddTransactionModal}
+                onEditTransaction={handleOpenEditTransactionModal}
+                onDeleteTransaction={handleDeleteRequest}
+                onFixedCostNavigate={handleFixedCostNavigation}
+              />
+            )}
+            {activeTab === 'Transaktionen' && (
+                <TransactionsPage
+                    cards={cards}
+                    transactions={combinedTransactions}
+                    selectedCardId={selectedCardId}
+                    setSelectedCardId={setSelectedCardId}
+                    selectedTransactionId={selectedTransactionId}
+                    setSelectedTransactionId={setSelectedTransactionId}
+                    onAddTransactionClick={handleOpenAddTransactionModal}
+                    onEditTransaction={handleOpenEditTransactionModal}
+                    onDeleteTransaction={handleDeleteRequest}
+                />
+            )}
+            {activeTab === 'Statistiken' && (
+                <StatisticsPage 
+                    cards={cards}
+                    transactions={combinedTransactions}
+                    selectedCardId={selectedCardId}
+                    setSelectedCardId={setSelectedCardId}
+                />
+            )}
+          </>
+        )}
+
       </div>
-      <div className="max-w-screen-2xl mx-auto relative z-10">
-        <Header 
-          activeTab={activeTab} 
-          setActiveTab={setActiveTab} 
-          navItems={navItems} 
-          onSearchClick={() => setIsSearchOpen(true)}
-          onSettingsClick={() => setSettingsModalOpen(true)}
-        />
-        {activeTab === 'Übersicht' && (
-          <DashboardPage 
-            cards={cards}
-            selectedCardId={selectedCardId}
-            onCardNavigate={handleCardNavigation}
-            onAddCard={handleAddCard}
-            onEditCard={handleOpenEditCardModal}
-            transactions={combinedTransactions}
-            onTransactionNavigate={handleTransactionNavigation}
-            onAddTransactionClick={handleOpenAddTransactionModal}
-            onEditTransaction={handleOpenEditTransactionModal}
-            onDeleteTransaction={(id) => handleDeleteRequest(id, 'transaction')}
-            fixedCosts={fixedCosts}
-            onAddFixedCostClick={() => setAddFixedCostModalOpen(true)}
-            onFixedCostNavigate={handleFixedCostNavigation}
-            onEditFixedCost={handleOpenEditFixedCostModal}
-            onDeleteFixedCost={(id) => handleDeleteRequest(id, 'fixedCost')}
-          />
-        )}
-        {activeTab === 'Transaktionen' && (
-          <TransactionsPage 
-            cards={cards}
-            transactions={combinedTransactions}
-            selectedCardId={selectedCardId}
-            setSelectedCardId={setSelectedCardId}
-            selectedTransactionId={selectedTransactionId}
-            setSelectedTransactionId={setSelectedTransactionId}
-            onAddTransactionClick={handleOpenAddTransactionModal}
-            onEditTransaction={handleOpenEditTransactionModal}
-            onDeleteTransaction={(id) => handleDeleteRequest(id, 'transaction')}
-          />
-        )}
-        {activeTab === 'Statistiken' && (
-          <StatisticsPage
-            cards={cards}
-            transactions={combinedTransactions}
-            selectedCardId={selectedCardId}
-            setSelectedCardId={setSelectedCardId}
-          />
-        )}
-      </div>
-       <SearchModal 
+      <MobileNav activeTab={activeTab} setActiveTab={setActiveTab} navItems={navItems} />
+      
+      {/* Modals */}
+      <SearchModal 
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
         transactions={combinedTransactions}
         cards={cards}
-        onNavigate={handleSearchNavigation}
+        onNavigate={handleTransactionNavigation}
       />
-      <SettingsModal
+      <SettingsModal 
         isOpen={isSettingsModalOpen}
         onClose={() => setSettingsModalOpen(false)}
         onExport={handleExportData}
         onImport={handleImportData}
         onDeleteAll={handleDeleteAllDataRequest}
       />
-      <AddFixedCostModal
-        isOpen={isAddFixedCostModalOpen}
-        onClose={() => setAddFixedCostModalOpen(false)}
-        onAddFixedCost={handleAddFixedCost}
-        cards={cards}
-      />
-      <AddTransactionModal
+      <AddTransactionModal 
         isOpen={isAddTransactionModalOpen}
         onClose={() => setAddTransactionModalOpen(false)}
         onAddTransaction={handleAddTransaction}
         cards={cards}
         preselectedCardId={cardIdForNewTransaction}
       />
-       {fixedCostToEdit && (
-        <EditFixedCostModal
-          isOpen={isEditFixedCostModalOpen}
-          onClose={() => setEditFixedCostModalOpen(false)}
-          onUpdateFixedCost={handleUpdateFixedCost}
-          fixedCost={fixedCostToEdit}
-          cards={cards}
-        />
-      )}
       {transactionToEdit && (
-        <EditTransactionModal
+        <EditTransactionModal 
             isOpen={isEditTransactionModalOpen}
             onClose={() => setEditTransactionModalOpen(false)}
             onUpdateTransaction={handleUpdateTransaction}
@@ -599,34 +664,31 @@ const App: React.FC = () => {
         />
       )}
       {cardToEdit && (
-        <EditCardModal
+        <EditCardModal 
           isOpen={isEditCardModalOpen}
           onClose={() => setEditCardModalOpen(false)}
           onUpdateCard={handleUpdateCard}
           card={cardToEdit}
         />
       )}
-      <ConfirmationModal
+      <ConfirmationModal 
         isOpen={isConfirmationModalOpen}
         onClose={() => setConfirmationModalOpen(false)}
         onConfirm={confirmDelete}
-        title={getConfirmationMessage().title}
-        message={getConfirmationMessage().message}
+        title="Löschen bestätigen"
+        message="Sind Sie sicher, dass Sie dieses Element endgültig löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden."
       />
-       <ConfirmationModal
+       <ConfirmationModal 
         isOpen={isDeleteAllConfirmationOpen}
         onClose={() => setDeleteAllConfirmationOpen(false)}
         onConfirm={confirmDeleteAllData}
         title="Alle Daten löschen?"
-        message="Möchten Sie wirklich alle Ihre Karten, Transaktionen und Fixkosten unwiderruflich löschen? Diese Aktion kann nicht rückgängig gemacht werden."
-      />
-       <MobileNav 
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        navItems={navItems}
+        message="Sind Sie absolut sicher? Alle Ihre Karten, Transaktionen und Einstellungen werden dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden."
+        confirmText="Alles löschen"
       />
     </div>
   );
 };
 
+// FIX: Add default export to the App component to resolve the import error.
 export default App;

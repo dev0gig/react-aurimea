@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { Card } from '../data/mockData';
+import type { Card, Transaction } from '../data/mockData';
 
 interface AddTransactionModalProps {
   isOpen: boolean;
@@ -12,6 +12,9 @@ interface AddTransactionModalProps {
     cardId: number;
     type: 'income' | 'expense' | 'transfer';
     destinationCardId?: number;
+    isFixedCost?: boolean;
+    billingDay?: number;
+    frequency?: 'monthly' | 'bimonthly' | 'quarterly' | 'semi-annually' | 'annually';
   }) => void;
   cards: Card[];
   preselectedCardId: number | null;
@@ -30,6 +33,10 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
   const [transactionType, setTransactionType] = useState<'income' | 'expense' | 'transfer'>('expense');
   const [destinationCardId, setDestinationCardId] = useState<number | ''>('');
   const [error, setError] = useState('');
+
+  const [isFixedCost, setIsFixedCost] = useState(false);
+  const [billingDay, setBillingDay] = useState('');
+  const [frequency, setFrequency] = useState<'monthly' | 'bimonthly' | 'quarterly' | 'semi-annually' | 'annually'>('monthly');
   
   useEffect(() => {
     if (isOpen) {
@@ -42,16 +49,29 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
         setCardId(preselectedCardId || (cards.length > 0 ? cards[0].id : ''));
         setDestinationCardId('');
         setError('');
+        setIsFixedCost(false);
+        setBillingDay('');
+        setFrequency('monthly');
     }
   }, [isOpen, preselectedCardId, cards]);
 
   useEffect(() => {
     if (transactionType === 'income') {
       setCategory(incomeCategories[0]);
+      setIsFixedCost(false);
     } else if (transactionType === 'expense') {
       setCategory(expenseCategories[0]);
+    } else if (transactionType === 'transfer') {
+        setIsFixedCost(false);
     }
   }, [transactionType]);
+
+  useEffect(() => {
+      if (isFixedCost && date && !billingDay) {
+        const day = new Date(date).getDate();
+        setBillingDay(String(day));
+      }
+  }, [isFixedCost, date, billingDay]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,14 +95,27 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
       }
     }
     
+    let finalBillingDay: number | undefined = undefined;
+    if (isFixedCost && transactionType === 'expense') {
+        const parsedBillingDay = parseInt(billingDay, 10);
+        if (!parsedBillingDay || parsedBillingDay < 1 || parsedBillingDay > 31) {
+            setError('Bitte geben Sie einen gültigen Abrechnungstag (1-31) an.');
+            return;
+        }
+        finalBillingDay = parsedBillingDay;
+    }
+    
     onAddTransaction({
       name,
       amount: parsedAmount,
       date,
-      category: transactionType === 'transfer' ? 'Übertrag' : category,
+      category: isFixedCost ? 'Fixkosten' : (transactionType === 'transfer' ? 'Übertrag' : category),
       cardId: Number(cardId),
       type: transactionType,
       destinationCardId: destinationCardId ? Number(destinationCardId) : undefined,
+      isFixedCost: isFixedCost && transactionType === 'expense',
+      billingDay: finalBillingDay,
+      frequency: isFixedCost ? frequency : undefined,
     });
   };
   
@@ -118,6 +151,21 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
             </div>
           </div>
           
+          {transactionType === 'expense' && (
+            <div className="flex items-center gap-3 py-2 -mt-2 mb-2">
+              <input
+                type="checkbox"
+                id="isFixedCostAdd"
+                checked={isFixedCost}
+                onChange={e => setIsFixedCost(e.target.checked)}
+                className="h-4 w-4 rounded bg-brand-surface text-purple-500 focus:ring-purple-400 border-brand-text-secondary"
+              />
+              <label htmlFor="isFixedCostAdd" className="text-sm font-medium text-brand-text-secondary cursor-pointer">
+                Als wiederkehrende Fixkosten behandeln
+              </label>
+            </div>
+          )}
+          
           <div>
             <label htmlFor="transNameAdd" className="block text-sm font-medium text-brand-text-secondary mb-1">Name</label>
             <input
@@ -143,7 +191,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
             />
           </div>
           
-          <div>
+           <div>
              <label htmlFor="transSourceCardAdd" className="block text-sm font-medium text-brand-text-secondary mb-1">{transactionType === 'transfer' ? 'Übertrag von' : 'Karte'}</label>
              <select
                  id="transSourceCardAdd"
@@ -176,6 +224,37 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
                     ))}
                 </select>
             </div>
+          ) : isFixedCost ? (
+             <div className="space-y-4 bg-brand-surface p-4 rounded-lg">
+                <div>
+                    <label htmlFor="transBillingDayAdd" className="block text-sm font-medium text-brand-text-secondary mb-1">Abrechnungstag im Monat</label>
+                    <input
+                      type="number"
+                      id="transBillingDayAdd"
+                      value={billingDay}
+                      onChange={e => setBillingDay(e.target.value)}
+                      placeholder="z.B., 15"
+                      min="1"
+                      max="31"
+                      className="w-full bg-brand-surface-alt p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white"
+                    />
+                </div>
+                 <div>
+                    <label htmlFor="transFrequencyAdd" className="block text-sm font-medium text-brand-text-secondary mb-1">Wiederholung</label>
+                    <select
+                        id="transFrequencyAdd"
+                        value={frequency}
+                        onChange={e => setFrequency(e.target.value as any)}
+                        className="w-full bg-brand-surface-alt p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white appearance-none"
+                    >
+                        <option value="monthly">Jeden Monat</option>
+                        <option value="bimonthly">Alle 2 Monate</option>
+                        <option value="quarterly">Vierteljährlich</option>
+                        <option value="semi-annually">Halbjährlich</option>
+                        <option value="annually">Jährlich</option>
+                    </select>
+                </div>
+             </div>
           ) : (
              <div>
                 <label htmlFor="transCategoryAdd" className="block text-sm font-medium text-brand-text-secondary mb-1">Kategorie</label>

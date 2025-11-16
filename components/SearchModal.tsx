@@ -66,12 +66,23 @@ const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, transactions
                             return (
                                 <div 
                                     key={t.id}
-                                    className="grid grid-cols-3 items-center p-3 rounded-xl hover:bg-brand-surface-alt transition-colors duration-200 cursor-pointer"
+                                    className={`grid grid-cols-3 items-center p-3 rounded-xl hover:bg-brand-surface-alt transition-colors duration-200 cursor-pointer ${t.isFuture ? 'opacity-50' : ''}`}
                                     onClick={() => onNavigate(t.id, t.cardId)}
                                 >
                                     <div className="col-span-2">
                                         <div>
-                                            <span className="font-medium block truncate" title={t.name}>{t.name}</span>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="font-medium block truncate" title={t.name}>{t.name}</span>
+                                                {t.isFixedCost && (
+                                                    <span
+                                                        className="material-symbols-outlined text-purple-400 flex-shrink-0"
+                                                        style={{ fontSize: '16px' }}
+                                                        title="Wiederkehrende Transaktion"
+                                                    >
+                                                        autorenew
+                                                    </span>
+                                                )}
+                                            </div>
                                             <p className="text-xs text-brand-text-secondary">{getFormattedDate(t.date)} &bull; {card?.title}</p>
                                         </div>
                                     </div>

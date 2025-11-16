@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import TotalBalanceCard from './TotalBalanceCard';
 import IncomeExpenseCards from './IncomeExpenseCards';
 import RevenueFlowChart from './RevenueFlowChart';
@@ -6,7 +6,7 @@ import ExpenseSplitChart from './ExpenseSplitChart';
 import RecentTransactions from './RecentTransactions';
 import MyCards from './MyCards';
 import FixedCosts from './FixedCosts';
-import type { Card, Transaction, FixedCost } from '../data/mockData';
+import type { Card, Transaction } from '../data/mockData';
 
 interface DashboardPageProps {
     cards: Card[];
@@ -15,23 +15,22 @@ interface DashboardPageProps {
     onAddCard: (card: Omit<Card, 'id'>) => void;
     onEditCard: (cardId: number) => void;
     transactions: Transaction[];
+    manualTransactions: Transaction[];
     onTransactionNavigate: (transactionId: number | string, cardId: number) => void;
     onAddTransactionClick: (cardId: number | null) => void;
     onEditTransaction: (id: number | string) => void;
     onDeleteTransaction: (id: number | string) => void;
-    fixedCosts: FixedCost[];
-    onAddFixedCostClick: () => void;
-    onFixedCostNavigate: (fixedCostId: number) => void;
-    onEditFixedCost: (id: number) => void;
-    onDeleteFixedCost: (id: number) => void;
+    onFixedCostNavigate: (transactionId: number | string) => void;
 }
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ 
     cards, selectedCardId, onCardNavigate, onAddCard, onEditCard,
-    transactions, onTransactionNavigate, onAddTransactionClick, onEditTransaction, onDeleteTransaction,
-    fixedCosts, onAddFixedCostClick, onFixedCostNavigate, onEditFixedCost, onDeleteFixedCost 
+    transactions, manualTransactions, onTransactionNavigate, onAddTransactionClick, onEditTransaction, onDeleteTransaction, 
+    onFixedCostNavigate
 }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
+
+    const transactionsForCalculations = useMemo(() => transactions.filter(t => !t.isFuture), [transactions]);
 
     const handlePrevMonth = () => {
         setCurrentDate(prevDate => {
@@ -56,6 +55,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
         return nextMonth.getFullYear() > today.getFullYear() || 
                (nextMonth.getFullYear() === today.getFullYear() && nextMonth.getMonth() > today.getMonth());
     }
+    
+    const fixedCostTemplates = manualTransactions.filter(t => t.isFixedCost);
 
     return (
         <main className="mt-8">
@@ -76,15 +77,15 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
             <div className="lg:col-span-2 space-y-6 order-2 lg:order-1">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-2">
-                    <TotalBalanceCard transactions={transactions} currentDate={currentDate} />
+                    <TotalBalanceCard transactions={transactionsForCalculations} currentDate={currentDate} />
                 </div>
                 <div className="md:col-span-1">
-                    <IncomeExpenseCards transactions={transactions} currentDate={currentDate} />
+                    <IncomeExpenseCards transactions={transactionsForCalculations} currentDate={currentDate} />
                 </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <RevenueFlowChart transactions={transactions} currentDate={currentDate} />
-                <ExpenseSplitChart transactions={transactions} currentDate={currentDate} />
+                <RevenueFlowChart transactions={transactionsForCalculations} currentDate={currentDate} />
+                <ExpenseSplitChart transactions={transactionsForCalculations} currentDate={currentDate} />
                 </div>
                 <RecentTransactions 
                     transactions={transactions} 
@@ -105,11 +106,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                     onEditCard={onEditCard}
                 />
                 <FixedCosts 
-                    fixedCosts={fixedCosts} 
-                    onAddClick={onAddFixedCostClick} 
+                    fixedCosts={fixedCostTemplates} 
                     onFixedCostNavigate={onFixedCostNavigate}
-                    onEditFixedCost={onEditFixedCost}
-                    onDeleteFixedCost={onDeleteFixedCost}
+                    onEditFixedCost={onEditTransaction}
+                    onDeleteFixedCost={onDeleteTransaction}
                 />
             </div>
             </div>

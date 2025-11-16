@@ -75,7 +75,7 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
   return (
     <div className="bg-brand-surface p-6 rounded-3xl border border-brand-surface-alt">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">Letzte Transaktionen <span className="text-sm text-brand-text-secondary">{transactions.length}</span></h3>
+        <h3 className="text-lg font-semibold">Letzte Transaktionen <span className="text-sm text-brand-text-secondary">{transactions.filter(t => !t.isFuture).length}</span></h3>
         <button 
           onClick={onAddClick}
           className="flex items-center gap-1 bg-white text-black text-sm font-semibold px-3 py-1.5 rounded-full hover:bg-gray-200 transition-colors"
@@ -88,7 +88,7 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
           recentTransactions.map((t) => (
             <div 
               key={t.id} 
-              className="grid grid-cols-3 md:grid-cols-4 items-center p-3 -m-3 rounded-xl hover:bg-brand-surface-alt transition-colors duration-200 cursor-pointer"
+              className={`grid grid-cols-3 md:grid-cols-4 items-center p-3 -m-3 rounded-xl hover:bg-brand-surface-alt transition-colors duration-200 cursor-pointer ${t.isFuture ? 'opacity-50' : ''}`}
               onClick={() => {
                 if (!openMenuId) onTransactionNavigate(t.id, t.cardId)
               }}
@@ -97,7 +97,18 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
                 <div className="flex items-center gap-3">
                     <TransactionIcon transaction={t} />
                     <div className="flex-1 min-w-0">
-                        <span className="font-medium block truncate" title={t.name}>{t.name}</span>
+                        <div className="flex items-center gap-1.5">
+                            <span className="font-medium block truncate" title={t.name}>{t.name}</span>
+                             {t.isFixedCost && (
+                                <span
+                                    className="material-symbols-outlined text-purple-400 flex-shrink-0"
+                                    style={{ fontSize: '16px' }}
+                                    title="Wiederkehrende Transaktion"
+                                >
+                                    autorenew
+                                </span>
+                             )}
+                        </div>
                         <p className="text-xs text-brand-text-secondary">{t.category}</p>
                     </div>
                 </div>
@@ -118,18 +129,12 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions, o
                 </button>
                 {openMenuId === t.id && (
                   <div ref={menuRef} className="absolute top-full right-0 mt-2 bg-brand-surface-alt rounded-lg shadow-lg py-1 w-32 z-20 animate-fade-in-sm">
-                    {t.category !== 'Fixkosten' ? (
-                      <>
-                        <button onClick={(e) => { e.stopPropagation(); onEditTransaction(t.id); setOpenMenuId(null); }} className="w-full text-left px-3 py-1.5 text-sm text-white hover:bg-brand-surface flex items-center gap-2">
-                          <span className="material-symbols-outlined" style={{fontSize: '16px'}}>edit</span> Bearbeiten
-                        </button>
-                        <button onClick={(e) => { e.stopPropagation(); onDeleteTransaction(t.id); setOpenMenuId(null); }} className="w-full text-left px-3 py-1.5 text-sm text-red-400 hover:bg-brand-surface flex items-center gap-2">
-                           <span className="material-symbols-outlined" style={{fontSize: '16px'}}>delete</span> Löschen
-                        </button>
-                      </>
-                    ) : (
-                       <p className="px-3 py-1.5 text-xs text-brand-text-secondary">Fixkosten-Transaktionen können nicht direkt bearbeitet werden.</p>
-                    )}
+                    <button onClick={(e) => { e.stopPropagation(); onEditTransaction(t.id); setOpenMenuId(null); }} className="w-full text-left px-3 py-1.5 text-sm text-white hover:bg-brand-surface flex items-center gap-2">
+                      <span className="material-symbols-outlined" style={{fontSize: '16px'}}>edit</span> Bearbeiten
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); onDeleteTransaction(t.id); setOpenMenuId(null); }} className="w-full text-left px-3 py-1.5 text-sm text-red-400 hover:bg-brand-surface flex items-center gap-2">
+                       <span className="material-symbols-outlined" style={{fontSize: '16px'}}>delete</span> Löschen
+                    </button>
                   </div>
                 )}
               </div>

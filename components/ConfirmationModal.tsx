@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface ConfirmationModalProps {
@@ -7,9 +6,10 @@ interface ConfirmationModalProps {
   onConfirm: () => void;
   title: string;
   message: string;
+  confirmText?: string;
 }
 
-const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, onClose, onConfirm, title, message }) => {
+const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, onClose, onConfirm, title, message, confirmText = "Löschen" }) => {
   if (!isOpen) return null;
 
   return (
@@ -36,7 +36,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, onClose, 
             onClick={onConfirm} 
             className="bg-red-500 text-white font-semibold px-6 py-2 rounded-full hover:bg-red-600 transition-colors"
           >
-            Löschen
+            {confirmText}
           </button>
         </div>
       </div>

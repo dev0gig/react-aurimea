@@ -200,12 +200,23 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ cards, transactions
                                                     transactionRefs.current.delete(t.id);
                                                 }
                                             }}
-                                            className="grid grid-cols-2 md:grid-cols-5 gap-4 items-center p-3 -m-3 rounded-xl hover:bg-brand-surface-alt transition-all duration-200"
+                                            className={`grid grid-cols-2 md:grid-cols-5 gap-4 items-center p-3 -m-3 rounded-xl hover:bg-brand-surface-alt transition-all duration-200 ${t.isFuture ? 'opacity-50' : ''}`}
                                         >
                                             <div className="md:col-span-2 flex items-center gap-3">
                                                 <TransactionIcon transaction={t} />
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="font-medium truncate" title={t.name}>{t.name}</p>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <p className="font-medium truncate" title={t.name}>{t.name}</p>
+                                                        {t.isFixedCost && (
+                                                            <span
+                                                                className="material-symbols-outlined text-purple-400 flex-shrink-0"
+                                                                style={{ fontSize: '16px' }}
+                                                                title="Wiederkehrende Transaktion"
+                                                            >
+                                                                autorenew
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <p className="text-xs text-brand-text-secondary md:hidden">{t.category} &bull; {formatDay(t.date)}</p>
                                                 </div>
                                             </div>
@@ -230,18 +241,12 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ cards, transactions
                                                 </button>
                                                 {openMenuId === t.id && (
                                                   <div ref={menuRef} className="absolute top-full right-0 mt-2 bg-brand-surface-alt rounded-lg shadow-lg py-1 w-32 z-20 animate-fade-in-sm">
-                                                    {t.category !== 'Fixkosten' ? (
-                                                        <>
-                                                            <button onClick={(e) => { e.stopPropagation(); onEditTransaction(t.id); setOpenMenuId(null); }} className="w-full text-left px-3 py-1.5 text-sm text-white hover:bg-brand-surface flex items-center gap-2">
-                                                            <span className="material-symbols-outlined" style={{fontSize: '16px'}}>edit</span> Bearbeiten
-                                                            </button>
-                                                            <button onClick={(e) => { e.stopPropagation(); onDeleteTransaction(t.id); setOpenMenuId(null); }} className="w-full text-left px-3 py-1.5 text-sm text-red-400 hover:bg-brand-surface flex items-center gap-2">
-                                                            <span className="material-symbols-outlined" style={{fontSize: '16px'}}>delete</span> Löschen
-                                                            </button>
-                                                        </>
-                                                    ) : (
-                                                        <p className="px-3 py-1.5 text-xs text-brand-text-secondary">Fixkosten-Transaktionen können nicht direkt bearbeitet werden.</p>
-                                                    )}
+                                                    <button onClick={(e) => { e.stopPropagation(); onEditTransaction(t.id); setOpenMenuId(null); }} className="w-full text-left px-3 py-1.5 text-sm text-white hover:bg-brand-surface flex items-center gap-2">
+                                                      <span className="material-symbols-outlined" style={{fontSize: '16px'}}>edit</span> Bearbeiten
+                                                    </button>
+                                                    <button onClick={(e) => { e.stopPropagation(); onDeleteTransaction(t.id); setOpenMenuId(null); }} className="w-full text-left px-3 py-1.5 text-sm text-red-400 hover:bg-brand-surface flex items-center gap-2">
+                                                      <span className="material-symbols-outlined" style={{fontSize: '16px'}}>delete</span> Löschen
+                                                    </button>
                                                   </div>
                                                 )}
                                             </div>

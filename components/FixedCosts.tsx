@@ -1,16 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { FixedCost } from '../data/mockData';
+import type { Transaction } from '../data/mockData';
 
 interface FixedCostsProps {
-    fixedCosts: FixedCost[];
-    onAddClick: () => void;
-    onFixedCostNavigate: (fixedCostId: number) => void;
-    onEditFixedCost: (id: number) => void;
-    onDeleteFixedCost: (id: number) => void;
+    fixedCosts: Transaction[];
+    onFixedCostNavigate: (transactionId: number | string) => void;
+    onEditFixedCost: (id: number | string) => void;
+    onDeleteFixedCost: (id: number | string) => void;
 }
 
-const FixedCosts: React.FC<FixedCostsProps> = ({ fixedCosts, onAddClick, onFixedCostNavigate, onEditFixedCost, onDeleteFixedCost }) => {
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+const FixedCosts: React.FC<FixedCostsProps> = ({ fixedCosts, onFixedCostNavigate, onEditFixedCost, onDeleteFixedCost }) => {
+  const [openMenuId, setOpenMenuId] = useState<number | string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -29,12 +28,6 @@ const FixedCosts: React.FC<FixedCostsProps> = ({ fixedCosts, onAddClick, onFixed
     <div className="bg-brand-surface p-6 rounded-3xl border border-brand-surface-alt">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold">Fixkosten <span className="text-sm text-brand-text-secondary">{fixedCosts.length}</span></h3>
-        <button 
-          onClick={onAddClick}
-          className="flex items-center gap-1 bg-white text-black text-sm font-semibold px-3 py-1.5 rounded-full hover:bg-gray-200 transition-colors"
-        >
-          Neu <span className="material-symbols-outlined" style={{fontSize: '16px'}}>add</span>
-        </button>
       </div>
       
       <div className="space-y-2">
@@ -51,7 +44,7 @@ const FixedCosts: React.FC<FixedCostsProps> = ({ fixedCosts, onAddClick, onFixed
               </div>
             </div>
             <div className="relative flex items-center gap-4">
-                <span className="font-semibold">€{fc.amount.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="font-semibold">€{Math.abs(fc.amount).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

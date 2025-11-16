@@ -1,11 +1,10 @@
-import type { Card, FixedCost, Transaction } from '../data/mockData';
+import type { Card, Transaction } from '../data/mockData';
 
 const DB_NAME = 'AuriMeaDB';
 const DB_VERSION = 1;
 export const STORES = {
   cards: 'cards',
   manualTransactions: 'manualTransactions',
-  fixedCosts: 'fixedCosts',
 };
 
 let db: IDBDatabase;
@@ -36,8 +35,8 @@ export const initDB = (): Promise<IDBDatabase> => {
       if (!dbInstance.objectStoreNames.contains(STORES.manualTransactions)) {
         dbInstance.createObjectStore(STORES.manualTransactions, { keyPath: 'id' });
       }
-      if (!dbInstance.objectStoreNames.contains(STORES.fixedCosts)) {
-        dbInstance.createObjectStore(STORES.fixedCosts, { keyPath: 'id' });
+      if (dbInstance.objectStoreNames.contains('fixedCosts')) {
+          dbInstance.deleteObjectStore('fixedCosts');
       }
     };
   });

@@ -1,5 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
+import { useFinance } from '../context/FinanceContext';
+import { getViennaFirstOfMonth } from '../utils/dateUtils';
 import TotalBalanceCard from './TotalBalanceCard';
 import IncomeExpenseCards from './IncomeExpenseCards';
 import RevenueFlowChart from './RevenueFlowChart';
@@ -7,17 +9,12 @@ import ExpenseSplitChart from './ExpenseSplitChart';
 import RecentTransactions from './RecentTransactions';
 import MyCards from './MyCards';
 import FixedCosts from './FixedCosts';
-import type { Card, Transaction } from '../data/mockData';
 
 interface DashboardPageProps {
-    cards: Card[];
     selectedCardId: number | null;
     onCardNavigate: (cardId: number) => void;
     onSeparateAccountNavigate: (cardId: number) => void;
-    onAddCard: (card: Omit<Card, 'id'>) => void;
     onEditCard: (cardId: number) => void;
-    transactions: Transaction[];
-    fixedCosts: Transaction[];
     onTransactionNavigate: (transactionId: number | string, cardId: number) => void;
     onAddTransactionClick: (cardId: number | null) => void;
     onEditTransaction: (id: number | string) => void;
@@ -25,18 +22,18 @@ interface DashboardPageProps {
     onFixedCostNavigate: (transactionId: number | string) => void;
 }
 
-const getViennaFirstOfMonth = () => {
-    const now = new Date();
-    const viennaDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Vienna' });
-    const [year, month] = viennaDateStr.split('-').map(Number);
-    return new Date(Date.UTC(year, month - 1, 1));
-};
-
 const DashboardPage: React.FC<DashboardPageProps> = ({ 
-    cards, selectedCardId, onCardNavigate, onSeparateAccountNavigate, onAddCard, onEditCard,
-    transactions, fixedCosts, onTransactionNavigate, onAddTransactionClick, onEditTransaction, onDeleteTransaction, 
+    selectedCardId, onCardNavigate, onSeparateAccountNavigate, onEditCard,
+    onTransactionNavigate, onAddTransactionClick, onEditTransaction, onDeleteTransaction, 
     onFixedCostNavigate
 }) => {
+    const { 
+        cards, 
+        transactionsForIncludedCards: transactions, 
+        fixedCostsForDashboard: fixedCosts,
+        addCard 
+    } = useFinance();
+
     const [currentDate, setCurrentDate] = useState(getViennaFirstOfMonth());
 
     const transactionsForCalculations = useMemo(() => transactions.filter(t => !t.isFuture), [transactions]);
@@ -60,12 +57,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
     const isNextMonthFuture = () => {
         const nextMonth = new Date(currentDate.getTime());
         nextMonth.setUTCMonth(nextMonth.getUTCMonth() + 1);
-        
         const now = new Date();
         const viennaDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Vienna' });
         const [year, month] = viennaDateStr.split('-').map(Number);
         const startOfCurrentViennaMonth = new Date(Date.UTC(year, month - 1, 1));
-
         return nextMonth > startOfCurrentViennaMonth;
     }
 
@@ -84,7 +79,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                 </div>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main Content */}
             <div className="lg:col-span-2 space-y-6 order-2 lg:order-1">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-2">
@@ -107,14 +101,13 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                 />
             </div>
 
-            {/* Right Sidebar */}
             <div className="lg:col-span-1 space-y-6 order-1 lg:order-2">
                 <MyCards 
                     cards={cards}
                     selectedCardId={selectedCardId}
                     onCardNavigate={onCardNavigate}
                     onSeparateAccountNavigate={onSeparateAccountNavigate}
-                    onAddCard={onAddCard}
+                    onAddCard={addCard}
                     onEditCard={onEditCard}
                 />
                 <FixedCosts 

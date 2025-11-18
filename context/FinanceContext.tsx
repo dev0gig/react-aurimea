@@ -144,59 +144,63 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const originalTransaction = manualTransactions.find(t => t.id === updatePayload.id);
     if (!originalTransaction) return;
 
-    // (Logic simplified for brevity, but functionality remains from original App.tsx logic)
-    // Handling fixed costs logic rewrite (simplified version of original App.tsx logic)
-    const isAmountChanging = Math.abs(originalTransaction.amount) !== updatePayload.amount;
+    // Robust Strategy: Delete old transaction(s) entirely and create new ones from scratch based on payload.
+    // This handles type switching (Expense <-> Transfer) and amount changes cleanly without patching.
+    
+    // 1. Delete old transaction(s) from DB and State
+    let currentTransactions = [...manualTransactions];
+    const idsToDelete: (number | string)[] = [];
 
-    // ... [Insert Complex logic from original App.tsx handleUpdateTransaction here if needed exactly] ...
-    // For brevity in this refactor, we use a direct replacement approach unless it's a special recurring update
-    // Ideally this logic should also be in financeUtils but kept here for context access.
-    
-    let updatedList = [...manualTransactions];
-    
-    // Delete old
     if (originalTransaction.type === 'transfer' && originalTransaction.transferId) {
         const transferId = originalTransaction.transferId;
-        const transactionsInTransfer = updatedList.filter(t => t.transferId === transferId);
-        for(const t of transactionsInTransfer) await db.deleteItem(db.STORES.manualTransactions, t.id);
-        updatedList = updatedList.filter(t => t.transferId !== transferId);
+        const transactionsInTransfer = currentTransactions.filter(t => t.transferId === transferId);
+        transactionsInTransfer.forEach(t => idsToDelete.push(t.id));
     } else {
-        await db.deleteItem(db.STORES.manualTransactions, originalTransaction.id);
-        updatedList = updatedList.filter(t => t.id !== originalTransaction.id);
+        idsToDelete.push(originalTransaction.id);
     }
 
-    // Create new (Logic copied from Add, effectively)
-    let transactionsToAdd: Transaction[] = [];
+    for (const id of idsToDelete) {
+        await db.deleteItem(db.STORES.manualTransactions, id);
+    }
+    currentTransactions = currentTransactions.filter(t => !idsToDelete.includes(t.id));
+
+    // 2. Create new transaction(s) based on updatePayload
+    let newTransactions: Transaction[] = [];
+
     if (updatePayload.type === 'transfer') {
         const { destinationCardId, amount, cardId, date, name, isFixedCost, billingDay, frequency } = updatePayload;
-        const transferId = originalTransaction.transferId || Date.now();
+        const transferId = originalTransaction.transferId || Date.now(); // Keep existing transfer ID if possible or new
         const sourceCard = cards.find(c => c.id === cardId);
         const destCard = cards.find(c => c.id === destinationCardId);
         
-        transactionsToAdd.push({
-            id: originalTransaction.id, // Keep ID if possible
-            cardId: cardId,
-            name: name || `Übertrag an ${destCard?.title}`,
-            category: isFixedCost ? 'Fixkosten' : 'Übertrag',
-            date: date,
-            amount: -amount,
-            type: 'transfer',
-            transferId, isFixedCost, billingDay, frequency
-        });
-        transactionsToAdd.push({
-            id: `transfer-dest-${transferId}`,
-            cardId: destinationCardId!,
-            name: name || `Übertrag von ${sourceCard?.title}`,
-            category: isFixedCost ? 'Fixkosten' : 'Übertrag',
-            date: date,
-            amount: amount,
-            type: 'transfer',
-            transferId, isFixedCost, billingDay, frequency
-        });
+        if (sourceCard && destCard && destinationCardId) {
+            newTransactions.push({
+                id: typeof originalTransaction.id === 'number' ? originalTransaction.id : Date.now(), // Try to preserve ID for the main edit
+                cardId: cardId,
+                name: name || `Übertrag an ${destCard.title}`,
+                category: isFixedCost ? 'Fixkosten' : 'Übertrag',
+                date: date,
+                amount: -amount,
+                type: 'transfer',
+                transferId, isFixedCost, billingDay, frequency
+            });
+            // Determine ID for the partner transaction
+            const partnerId = idsToDelete.find(id => id !== originalTransaction.id) || `transfer-dest-${transferId}`;
+            newTransactions.push({
+                id: partnerId,
+                cardId: destinationCardId,
+                name: name || `Übertrag von ${sourceCard.title}`,
+                category: isFixedCost ? 'Fixkosten' : 'Übertrag',
+                date: date,
+                amount: amount,
+                type: 'transfer',
+                transferId, isFixedCost, billingDay, frequency
+            });
+        }
     } else {
         const finalAmount = updatePayload.type === 'income' ? updatePayload.amount : -updatePayload.amount;
-        transactionsToAdd.push({
-            id: originalTransaction.id,
+        newTransactions.push({
+            id: originalTransaction.id, // Preserve ID
             cardId: updatePayload.cardId,
             name: updatePayload.name,
             category: updatePayload.isFixedCost ? 'Fixkosten' : updatePayload.category,
@@ -206,18 +210,19 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
             isFixedCost: updatePayload.isFixedCost,
             billingDay: updatePayload.billingDay,
             frequency: updatePayload.frequency,
+            transferId: undefined // Ensure transferId is cleared if switching from transfer
         });
     }
 
-    for(const t of transactionsToAdd) await db.add(db.STORES.manualTransactions, t);
+    // 3. Add new transactions to DB and State
+    for(const t of newTransactions) {
+        await db.add(db.STORES.manualTransactions, t);
+    }
     
-    // Re-fetch to be safe or manually update state
-    const newList = [...updatedList, ...transactionsToAdd];
-    setManualTransactions(newList);
+    setManualTransactions([...currentTransactions, ...newTransactions]);
   };
 
   const deleteTransaction = async (id: number | string) => {
-      // Handle recurring vs normal vs transfer logic here (simplified for context)
       let idToDelete = id;
       if (typeof id === 'string' && id.startsWith('fc-')) {
           idToDelete = parseInt(id.split('-')[1], 10);

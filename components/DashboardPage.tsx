@@ -16,7 +16,7 @@ interface DashboardPageProps {
     onAddCard: (card: Omit<Card, 'id'>) => void;
     onEditCard: (cardId: number) => void;
     transactions: Transaction[];
-    manualTransactions: Transaction[];
+    fixedCosts: Transaction[];
     onTransactionNavigate: (transactionId: number | string, cardId: number) => void;
     onAddTransactionClick: (cardId: number | null) => void;
     onEditTransaction: (id: number | string) => void;
@@ -33,7 +33,7 @@ const getViennaFirstOfMonth = () => {
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ 
     cards, selectedCardId, onCardNavigate, onAddCard, onEditCard,
-    transactions, manualTransactions, onTransactionNavigate, onAddTransactionClick, onEditTransaction, onDeleteTransaction, 
+    transactions, fixedCosts, onTransactionNavigate, onAddTransactionClick, onEditTransaction, onDeleteTransaction, 
     onFixedCostNavigate
 }) => {
     const [currentDate, setCurrentDate] = useState(getViennaFirstOfMonth());
@@ -67,8 +67,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
 
         return nextMonth > startOfCurrentViennaMonth;
     }
-    
-    const fixedCostTemplates = manualTransactions.filter(t => t.isFixedCost);
 
     return (
         <main className="mt-8">
@@ -118,7 +116,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                     onEditCard={onEditCard}
                 />
                 <FixedCosts 
-                    fixedCosts={fixedCostTemplates} 
+                    fixedCosts={fixedCosts} 
                     onFixedCostNavigate={onFixedCostNavigate}
                     onEditFixedCost={onEditTransaction}
                     onDeleteFixedCost={onDeleteTransaction}

@@ -26,6 +26,7 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ onAddCard, onClose }) => {
   const [holder, setHolder] = useState('');
   const [expiry, setExpiry] = useState('');
   const [color, setColor] = useState(cardColors[0]);
+  const [includeInTotals, setIncludeInTotals] = useState(true);
   const [error, setError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -45,7 +46,7 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ onAddCard, onClose }) => {
         return;
     }
 
-    onAddCard({ title, number: number.replace(/\s/g, ''), holder, expiry, color });
+    onAddCard({ title, number: number.replace(/\s/g, ''), holder, expiry, color, includeInTotals });
   };
 
   const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,6 +139,21 @@ const AddCardModal: React.FC<AddCardModalProps> = ({ onAddCard, onClose }) => {
                         aria-label={`Farbe ${c} auswählen`}
                     />
                 ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-brand-text-secondary mb-2">Optionen</label>
+            <div className="flex items-center gap-3 bg-brand-surface p-3 rounded-lg">
+                <input
+                type="checkbox"
+                id="includeInTotalsAdd"
+                checked={includeInTotals}
+                onChange={(e) => setIncludeInTotals(e.target.checked)}
+                className="h-4 w-4 rounded bg-brand-surface-alt text-purple-500 focus:ring-purple-400 border-brand-text-secondary"
+                />
+                <label htmlFor="includeInTotalsAdd" className="text-sm text-brand-text-secondary cursor-pointer">
+                    In Gesamtguthaben & Statistiken einbeziehen
+                </label>
             </div>
           </div>
            {error && <p className="text-sm text-brand-accent-red">{error}</p>}

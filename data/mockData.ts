@@ -7,6 +7,7 @@ export interface Card {
   holder: string;
   expiry: string;
   color: string;
+  includeInTotals?: boolean;
 }
 
 export const cards: Card[] = [];

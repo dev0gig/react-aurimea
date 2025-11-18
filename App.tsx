@@ -51,28 +51,32 @@ const App: React.FC = () => {
           db.getAll<Transaction>(db.STORES.manualTransactions),
         ]);
 
+        const processCards = (cardList: Card[]) => cardList.map(c => ({ ...c, includeInTotals: c.includeInTotals ?? true }));
+
         if (dbCards.length === 0 && dbManualTransactions.length === 0) {
           // First time load, populate DB with mock data
+          const processedCards = processCards(initialCards);
           await Promise.all([
-            db.bulkAdd(db.STORES.cards, initialCards),
+            db.bulkAdd(db.STORES.cards, processedCards),
             db.bulkAdd(db.STORES.manualTransactions, initialTransactions),
           ]);
-          setCards(initialCards);
+          setCards(processedCards);
           setManualTransactions(initialTransactions);
-          if (initialCards.length > 0) {
-            setSelectedCardId(initialCards[0].id);
+          if (processedCards.length > 0) {
+            setSelectedCardId(processedCards[0].id);
           }
         } else {
-          setCards(dbCards);
+          const processedCards = processCards(dbCards);
+          setCards(processedCards);
           setManualTransactions(dbManualTransactions);
-           if (dbCards.length > 0) {
-            setSelectedCardId(dbCards[0].id);
+           if (processedCards.length > 0) {
+            setSelectedCardId(processedCards[0].id);
           }
         }
       } catch (error) {
         console.error("Failed to load data from IndexedDB", error);
         // Fallback to initial data if DB fails
-        setCards(initialCards);
+        setCards(initialCards.map(c => ({...c, includeInTotals: c.includeInTotals ?? true})));
         setManualTransactions(initialTransactions);
       } finally {
         setIsLoading(false);
@@ -153,6 +157,16 @@ const App: React.FC = () => {
 
     return uniqueTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [manualTransactions]);
+
+  const includedCardIds = useMemo(() => new Set(cards.filter(c => c.includeInTotals).map(c => c.id)), [cards]);
+
+  const transactionsForDashboard = useMemo(() => {
+     return combinedTransactions.filter(t => includedCardIds.has(t.cardId));
+  }, [combinedTransactions, includedCardIds]);
+
+  const fixedCostsForDashboard = useMemo(() => {
+     return manualTransactions.filter(t => t.isFixedCost && includedCardIds.has(t.cardId));
+  }, [manualTransactions, includedCardIds]);
 
   const handleAddCard = async (newCardData: Omit<Card, 'id'>) => {
     const newCard: Card = {
@@ -604,7 +618,7 @@ const App: React.FC = () => {
             db.bulkAdd(db.STORES.manualTransactions, importedData.manualTransactions),
           ]);
           
-          setCards(importedData.cards);
+          setCards(importedData.cards.map((c: Card) => ({...c, includeInTotals: c.includeInTotals ?? true})));
           setManualTransactions(importedData.manualTransactions);
 
           alert('Daten erfolgreich importiert!');
@@ -671,8 +685,8 @@ const App: React.FC = () => {
                 onCardNavigate={handleCardNavigation}
                 onAddCard={handleAddCard}
                 onEditCard={handleOpenEditCardModal}
-                transactions={combinedTransactions}
-                manualTransactions={manualTransactions}
+                transactions={transactionsForDashboard}
+                fixedCosts={fixedCostsForDashboard}
                 onTransactionNavigate={handleTransactionNavigation}
                 onAddTransactionClick={handleOpenAddTransactionModal}
                 onEditTransaction={handleOpenEditTransactionModal}

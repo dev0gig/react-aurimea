@@ -590,7 +590,9 @@ const App: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'aurimea-backup.json';
+    const today = new Date();
+    const dateString = today.toLocaleDateString('en-CA'); // YYYY-MM-DD format
+    a.download = `aurimea-backup-${dateString}.json`;
     a.click();
     URL.revokeObjectURL(url);
     setSettingsModalOpen(false);

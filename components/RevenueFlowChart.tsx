@@ -67,6 +67,7 @@ const RevenueFlowChart: React.FC<RevenueFlowChartProps> = ({ transactions, curre
                     borderRadius: '1rem',
                     color: '#fff'
                 }}
+                itemStyle={{ color: '#fff' }}
                 formatter={(value: number) => `${value.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`}
             />
             <Bar dataKey="value" radius={[10, 10, 0, 0]}>

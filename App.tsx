@@ -287,7 +287,8 @@ const App: React.FC = () => {
     const isAmountChanging = Math.abs(originalTransaction.amount) !== updatePayload.amount;
 
     if (originalTransaction.isFixedCost && isAmountChanging && originalTransaction.type === 'expense') {
-        const today = new Date();
+        const todayViennaStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Vienna' });
+        const today = new Date(`${todayViennaStr}T00:00:00.000Z`);
         let nextBillingDate: Date | null = null;
         const templateStartDate = new Date(originalTransaction.date);
         let checkDate = new Date(Date.UTC(templateStartDate.getUTCFullYear(), templateStartDate.getUTCMonth(), 1));
@@ -491,7 +492,8 @@ const App: React.FC = () => {
         if (transactionToDelete.isFixedCost) {
             const pastOccurrencesToSave: Transaction[] = [];
             const templateStartDate = new Date(transactionToDelete.date);
-            const today = new Date();
+            const todayViennaStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Vienna' });
+            const today = new Date(`${todayViennaStr}T00:00:00.000Z`);
             
             let currentDate = new Date(templateStartDate.getFullYear(), templateStartDate.getMonth(), 1);
             

@@ -14,16 +14,7 @@ const IncomeExpenseCards: React.FC<IncomeExpenseCardsProps> = ({ transactions, c
                transactionDate.getUTCMonth() === currentDate.getUTCMonth();
     });
 
-    const prevMonthDate = new Date(currentDate);
-    prevMonthDate.setUTCMonth(prevMonthDate.getUTCMonth() - 1);
-
-    const prevMonthsTransactions = transactions.filter(t => {
-        const transactionDate = new Date(t.date);
-        return transactionDate.getUTCFullYear() === prevMonthDate.getUTCFullYear() &&
-               transactionDate.getUTCMonth() === prevMonthDate.getUTCMonth();
-    });
-
-  const monthlyIncome = prevMonthsTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+  const monthlyIncome = thisMonthsTransactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
   const monthlyExpense = thisMonthsTransactions.filter(t => t.amount < 0).reduce((sum, t) => sum + t.amount, 0);
 
   const formattedIncome = monthlyIncome.toLocaleString('de-DE', { maximumFractionDigits: 0 });
@@ -32,10 +23,10 @@ const IncomeExpenseCards: React.FC<IncomeExpenseCardsProps> = ({ transactions, c
   return (
     <div className="space-y-4 h-full flex flex-col">
       <div className="bg-brand-surface p-4 rounded-3xl flex-1 border border-brand-surface-alt">
-        <p className="text-brand-text-secondary text-sm">Einnahmen (Vormonat)</p>
+        <p className="text-brand-text-secondary text-sm">Einnahmen</p>
         <p className="text-2xl font-semibold mt-1">+€{formattedIncome}</p>
         <div className="flex items-center justify-between mt-2">
-          <p className="text-xs text-brand-text-secondary">Gehalt vom {prevMonthDate.toLocaleString('de-DE', { month: 'long', timeZone: 'UTC' })}</p>
+          <p className="text-xs text-brand-text-secondary">Einnahmen diesen Monat</p>
         </div>
       </div>
       <div className="bg-brand-surface p-4 rounded-3xl flex-1 border border-brand-surface-alt">

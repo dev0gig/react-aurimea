@@ -13,7 +13,7 @@ const RevenueFlowChart: React.FC<RevenueFlowChartProps> = ({ transactions, curre
     const d = new Date(currentDate.getTime());
     d.setUTCMonth(d.getUTCMonth() - i);
     return {
-        name: d.toLocaleString('de-DE', { month: 'short', timeZone: 'UTC' }),
+        name: d.toLocaleString('de-DE', { month: 'short', timeZone: 'Europe/Vienna' }),
         year: d.getUTCFullYear(),
         month: d.getUTCMonth(),
         value: 0

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { Card, Transaction } from '../data/mockData';
 
@@ -27,7 +28,7 @@ const incomeCategories = ['Einkommen', 'Einzahlung', 'Sonstiges'];
 const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClose, onAddTransaction, cards, preselectedCardId }) => {
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState('');
   const [category, setCategory] = useState(expenseCategories[0]);
   const [cardId, setCardId] = useState<number | ''>('');
   const [transactionType, setTransactionType] = useState<'income' | 'expense' | 'transfer'>('expense');
@@ -41,9 +42,12 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
   useEffect(() => {
     if (isOpen) {
         // Reset form on open
+        const now = new Date();
+        const viennaDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Vienna' });
+        
         setName('');
         setAmount('');
-        setDate(new Date().toISOString().split('T')[0]);
+        setDate(viennaDateStr);
         setTransactionType('expense');
         setCategory(expenseCategories[0]);
         setCardId(preselectedCardId || (cards.length > 0 ? cards[0].id : ''));
@@ -74,11 +78,20 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
       }
   }, [isFixedCost, date, billingDay]);
 
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (/^[\d.,]*$/.test(value)) {
+        if ((value.match(/[,.]/g) || []).length <= 1) {
+            setAmount(value);
+        }
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    const parsedAmount = parseFloat(amount);
+    const parsedAmount = parseFloat(amount.replace(',', '.'));
 
     if (!name || !parsedAmount || !date || !cardId) {
       setError('Bitte füllen Sie alle erforderlichen Felder aus.');
@@ -181,13 +194,12 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
           <div>
             <label htmlFor="transAmountAdd" className="block text-sm font-medium text-brand-text-secondary mb-1">Betrag (€)</label>
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
               id="transAmountAdd"
               value={amount}
-              onChange={e => setAmount(e.target.value)}
-              placeholder="89.50"
-              min="0.01"
-              step="0.01"
+              onChange={handleAmountChange}
+              placeholder="89,50"
               className="w-full bg-brand-surface p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white"
             />
           </div>

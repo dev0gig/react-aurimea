@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { Transaction, Card } from '../data/mockData';
 
@@ -68,11 +69,20 @@ const EditTransactionModal: React.FC<EditTransactionModalProps> = ({ isOpen, onC
       }
   }, [isFixedCost, date, billingDay]);
 
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (/^[\d.,]*$/.test(value)) {
+        if ((value.match(/[,.]/g) || []).length <= 1) {
+            setAmount(value);
+        }
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    const parsedAmount = parseFloat(amount);
+    const parsedAmount = parseFloat(amount.replace(',', '.'));
 
     if (!name || !parsedAmount || !date || !cardId) {
       setError('Bitte füllen Sie alle erforderlichen Felder aus.');
@@ -176,13 +186,12 @@ const EditTransactionModal: React.FC<EditTransactionModalProps> = ({ isOpen, onC
           <div>
             <label htmlFor="transAmountEdit" className="block text-sm font-medium text-brand-text-secondary mb-1">Betrag (€)</label>
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
               id="transAmountEdit"
               value={amount}
-              onChange={e => setAmount(e.target.value)}
-              placeholder="89.50"
-              min="0.01"
-              step="0.01"
+              onChange={handleAmountChange}
+              placeholder="89,50"
               className="w-full bg-brand-surface p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white"
             />
           </div>

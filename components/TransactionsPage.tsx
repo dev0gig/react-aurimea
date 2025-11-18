@@ -127,7 +127,7 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ cards, transactions
     const formatMonthKey = (key: string) => {
         const [year, monthIndex] = key.split('-');
         const date = new Date(Date.UTC(parseInt(year), parseInt(monthIndex)));
-        return date.toLocaleString('de-DE', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+        return date.toLocaleString('de-DE', { month: 'long', year: 'numeric', timeZone: 'Europe/Vienna' });
     };
 
     return (

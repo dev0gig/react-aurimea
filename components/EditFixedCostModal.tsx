@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { FixedCost, Card } from '../data/mockData';
 
@@ -25,11 +26,20 @@ const EditFixedCostModal: React.FC<EditFixedCostModalProps> = ({ isOpen, onClose
     }
   }, [fixedCost]);
 
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (/^[\d.,]*$/.test(value)) {
+        if ((value.match(/[,.]/g) || []).length <= 1) {
+            setAmount(value);
+        }
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    const parsedAmount = parseFloat(amount);
+    const parsedAmount = parseFloat(amount.replace(',', '.'));
     const parsedBillingDay = parseInt(billingDay, 10);
 
     if (!name || !parsedAmount || !parsedBillingDay || !cardId) {
@@ -73,13 +83,12 @@ const EditFixedCostModal: React.FC<EditFixedCostModalProps> = ({ isOpen, onClose
            <div>
             <label htmlFor="subAmountEdit" className="block text-sm font-medium text-brand-text-secondary mb-1">Monatlicher Betrag (€)</label>
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
               id="subAmountEdit"
               value={amount}
-              onChange={e => setAmount(e.target.value)}
-              placeholder="9.99"
-              min="0.01"
-              step="0.01"
+              onChange={handleAmountChange}
+              placeholder="9,99"
               className="w-full bg-brand-surface p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white"
             />
           </div>

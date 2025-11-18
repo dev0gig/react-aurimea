@@ -78,7 +78,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                     <button onClick={handlePrevMonth} className="p-1 rounded-full hover:bg-brand-surface-alt transition-colors">
                         <span className="material-symbols-outlined" style={{fontSize: '20px'}}>chevron_left</span>
                     </button>
-                    <span className="text-sm font-semibold w-32 text-center">{currentDate.toLocaleString('de-DE', { month: 'long', year: 'numeric', timeZone: 'UTC' })}</span>
+                    <span className="text-sm font-semibold w-32 text-center">{currentDate.toLocaleString('de-DE', { month: 'long', year: 'numeric', timeZone: 'Europe/Vienna' })}</span>
                     <button onClick={handleNextMonth} disabled={isNextMonthFuture()} className="p-1 rounded-full hover:bg-brand-surface-alt transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                         <span className="material-symbols-outlined" style={{fontSize: '20px'}}>chevron_right</span>
                     </button>

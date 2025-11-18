@@ -25,6 +25,7 @@ const MainContent: React.FC = () => {
     updateTransaction,
     deleteTransaction,
     updateCard,
+    deleteCard,
     deleteAllData,
     importData
   } = useFinance();
@@ -43,12 +44,13 @@ const MainContent: React.FC = () => {
   const [isEditCardModalOpen, setEditCardModalOpen] = useState(false);
   const [isConfirmationModalOpen, setConfirmationModalOpen] = useState(false);
   const [isDeleteAllConfirmationOpen, setDeleteAllConfirmationOpen] = useState(false);
+  const [isDeleteCardConfirmationOpen, setDeleteCardConfirmationOpen] = useState(false);
   
   // Modal Data State
   const [cardIdForNewTransaction, setCardIdForNewTransaction] = useState<number | null>(null);
   const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
   const [cardToEdit, setCardToEdit] = useState<Card | null>(null);
-  const [itemToDelete, setItemToDelete] = useState<{ id: number | string; type: 'transaction' } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ id: number | string; type: 'transaction' | 'card' } | null>(null);
 
   const navItems = ['Übersicht', 'Transaktionen', 'Statistiken', 'Separate Konten'];
 
@@ -95,6 +97,14 @@ const MainContent: React.FC = () => {
       setEditCardModalOpen(true);
     }
   };
+
+  const initiateDeleteCard = () => {
+      if (cardToEdit) {
+          setItemToDelete({ id: cardToEdit.id, type: 'card' });
+          setEditCardModalOpen(false);
+          setDeleteCardConfirmationOpen(true);
+      }
+  }
 
   const handleExportData = async () => {
     const dataToExport = { cards, manualTransactions };
@@ -220,6 +230,7 @@ const MainContent: React.FC = () => {
           isOpen={isEditCardModalOpen}
           onClose={() => setEditCardModalOpen(false)}
           onUpdateCard={(data) => { updateCard(data); setEditCardModalOpen(false); }}
+          onDelete={initiateDeleteCard}
           card={cardToEdit}
         />
       )}
@@ -227,15 +238,23 @@ const MainContent: React.FC = () => {
         isOpen={isConfirmationModalOpen}
         onClose={() => setConfirmationModalOpen(false)}
         onConfirm={() => { if(itemToDelete) deleteTransaction(itemToDelete.id); setConfirmationModalOpen(false); }}
-        title="Löschen bestätigen"
-        message="Sind Sie sicher?"
+        title="Transaktion löschen"
+        message="Sind Sie sicher, dass Sie diese Transaktion löschen möchten?"
+      />
+       <ConfirmationModal 
+        isOpen={isDeleteCardConfirmationOpen}
+        onClose={() => setDeleteCardConfirmationOpen(false)}
+        onConfirm={() => { if(itemToDelete && itemToDelete.type === 'card') deleteCard(Number(itemToDelete.id)); setDeleteCardConfirmationOpen(false); if(selectedCardId === itemToDelete?.id) setSelectedCardId(null); }}
+        title="Konto löschen?"
+        message="Warnung: Wenn Sie dieses Konto löschen, werden ALLE zugehörigen Transaktionen und Abonnements ebenfalls unwiderruflich gelöscht."
+        confirmText="Konto löschen"
       />
        <ConfirmationModal 
         isOpen={isDeleteAllConfirmationOpen}
         onClose={() => setDeleteAllConfirmationOpen(false)}
         onConfirm={() => { deleteAllData(); setDeleteAllConfirmationOpen(false); }}
         title="Alle Daten löschen?"
-        message="Dies kann nicht rückgängig gemacht werden."
+        message="Dies kann nicht rückgängig gemacht werden. Alle Konten und Transaktionen werden gelöscht."
         confirmText="Alles löschen"
       />
     </div>

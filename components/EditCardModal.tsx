@@ -4,12 +4,13 @@ import type { Card } from '../data/mockData';
 
 interface EditCardModalProps {
   onUpdateCard: (card: Card) => void;
+  onDelete: () => void;
   onClose: () => void;
   isOpen: boolean;
   card: Card;
 }
 
-const EditCardModal: React.FC<EditCardModalProps> = ({ onUpdateCard, onClose, isOpen, card }) => {
+const EditCardModal: React.FC<EditCardModalProps> = ({ onUpdateCard, onDelete, onClose, isOpen, card }) => {
   const [title, setTitle] = useState('');
   const [includeInTotals, setIncludeInTotals] = useState(true);
   const [error, setError] = useState('');
@@ -69,13 +70,25 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ onUpdateCard, onClose, is
             </div>
           </div>
            {error && <p className="text-sm text-brand-accent-red">{error}</p>}
+          
           <div className="flex items-center justify-end gap-4 pt-4">
             <button type="button" onClick={onClose} className="text-brand-text-secondary hover:text-white px-4 py-2 rounded-full transition-colors">
               Abbrechen
             </button>
             <button type="submit" className="bg-white text-black font-semibold px-6 py-2 rounded-full hover:bg-gray-200 transition-colors">
-              Änderungen speichern
+              Speichern
             </button>
+          </div>
+
+          <div className="border-t border-brand-surface pt-4 mt-6">
+              <button 
+                type="button" 
+                onClick={onDelete} 
+                className="flex items-center justify-center gap-2 w-full text-brand-accent-red hover:text-red-400 text-sm font-medium transition-colors p-2 rounded-lg hover:bg-brand-surface"
+              >
+                  <span className="material-symbols-outlined" style={{fontSize: '18px'}}>delete</span>
+                  Konto löschen
+              </button>
           </div>
         </form>
       </div>

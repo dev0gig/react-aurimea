@@ -66,7 +66,7 @@ const StatisticsPage: React.FC<StatisticsPageProps> = ({ selectedCardId, setSele
 
         const expenseSplitData = Object.entries(expenseByCategory)
             .map(([name, value]) => ({ name, value, color: expenseColors[name] || expenseColors.Standard }))
-            .sort((a, b) => b.value - a.value);
+            .sort((a, b) => Number(b.value) - Number(a.value));
 
         const monthBuckets = Array.from({ length: 6 }).map((_, i) => {
             const d = new Date(currentDate); d.setUTCMonth(d.getUTCMonth() - i);

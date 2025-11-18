@@ -15,6 +15,7 @@ interface FinanceContextType {
   fixedCostsForDashboard: Transaction[];
   addCard: (card: Omit<Card, 'id'>) => Promise<void>;
   updateCard: (card: Card) => Promise<void>;
+  deleteCard: (cardId: number) => Promise<void>;
   addTransaction: (data: any) => Promise<void>;
   updateTransaction: (data: any) => Promise<void>;
   deleteTransaction: (id: number | string) => Promise<void>;
@@ -88,6 +89,35 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const updateCard = async (updatedCard: Card) => {
     await db.put(db.STORES.cards, updatedCard);
     setCards(prev => prev.map(c => c.id === updatedCard.id ? updatedCard : c));
+  };
+
+  const deleteCard = async (cardId: number) => {
+      // 1. Identify all transactions directly on this card
+      const cardTransactions = manualTransactions.filter(t => t.cardId === cardId);
+      const idsToDelete = new Set<number | string>(cardTransactions.map(t => t.id));
+
+      // 2. Identify linked transfer transactions on OTHER cards
+      // If a transaction on this card is part of a transfer, we must delete the partner transaction too.
+      cardTransactions.forEach(t => {
+          if (t.type === 'transfer' && t.transferId) {
+              const partner = manualTransactions.find(pt => pt.transferId === t.transferId && pt.id !== t.id);
+              if (partner) {
+                  idsToDelete.add(partner.id);
+              }
+          }
+      });
+
+      // 3. Delete transactions from DB
+      for (const id of Array.from(idsToDelete)) {
+          await db.deleteItem(db.STORES.manualTransactions, id);
+      }
+
+      // 4. Delete Card from DB
+      await db.deleteItem(db.STORES.cards, cardId);
+
+      // 5. Update State
+      setManualTransactions(prev => prev.filter(t => !idsToDelete.has(t.id)));
+      setCards(prev => prev.filter(c => c.id !== cardId));
   };
 
   const addTransaction = async (newTransactionData: any) => {
@@ -275,6 +305,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       fixedCostsForDashboard,
       addCard,
       updateCard,
+      deleteCard,
       addTransaction,
       updateTransaction,
       deleteTransaction,

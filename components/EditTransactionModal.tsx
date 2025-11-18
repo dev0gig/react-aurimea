@@ -91,11 +91,11 @@ const EditTransactionModal: React.FC<EditTransactionModalProps> = ({ isOpen, onC
 
     if (transactionType === 'transfer') {
       if (!destinationCardId) {
-        setError('Bitte wählen Sie eine Zielkarte für den Übertrag aus.');
+        setError('Bitte wählen Sie ein Zielkonto für den Übertrag aus.');
         return;
       }
       if (destinationCardId === cardId) {
-        setError('Quell- und Zielkarte dürfen nicht identisch sein.');
+        setError('Quell- und Zielkonto dürfen nicht identisch sein.');
         return;
       }
     }
@@ -205,10 +205,10 @@ const EditTransactionModal: React.FC<EditTransactionModalProps> = ({ isOpen, onC
                     onChange={e => setDestinationCardId(Number(e.target.value))}
                     className="w-full bg-brand-surface p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white appearance-none"
                 >
-                    <option value="" disabled>Zielkarte auswählen...</option>
+                    <option value="" disabled>Zielkonto auswählen...</option>
                     {cards.filter(c => c.id !== cardId).map(card => (
                         <option key={card.id} value={card.id}>
-                            {card.title} - **** {card.number.slice(-4)}
+                            {card.title}
                         </option>
                     ))}
                 </select>
@@ -262,7 +262,7 @@ const EditTransactionModal: React.FC<EditTransactionModalProps> = ({ isOpen, onC
             </div>
           )}
            <div>
-             <label htmlFor="transSourceCardEdit" className="block text-sm font-medium text-brand-text-secondary mb-1">{transactionType === 'transfer' ? 'Übertrag von' : 'Karte'}</label>
+             <label htmlFor="transSourceCardEdit" className="block text-sm font-medium text-brand-text-secondary mb-1">{transactionType === 'transfer' ? 'Übertrag von' : 'Konto'}</label>
              <select
                  id="transSourceCardEdit"
                  value={cardId}
@@ -271,7 +271,7 @@ const EditTransactionModal: React.FC<EditTransactionModalProps> = ({ isOpen, onC
              >
                  {cards.map(card => (
                      <option key={card.id} value={card.id}>
-                         {card.title} - **** {card.number.slice(-4)}
+                         {card.title}
                      </option>
                  ))}
              </select>

@@ -136,7 +136,7 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ cards, transactions
             
             <div className="bg-brand-surface p-6 rounded-3xl border border-brand-surface-alt">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
-                    <h2 className="text-lg font-semibold text-white">Karte & Jahr auswählen</h2>
+                    <h2 className="text-lg font-semibold text-white">Konto & Jahr auswählen</h2>
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2 bg-brand-surface-alt p-1 rounded-full">
                             <button 
@@ -173,7 +173,7 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ cards, transactions
                                     : 'bg-brand-surface-alt text-brand-text-secondary hover:text-white hover:bg-brand-surface-alt/70'
                             }`}
                         >
-                            {card.title} - **** {card.number.slice(-4)}
+                            {card.title}
                         </button>
                     ))}
                 </div>
@@ -257,7 +257,7 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({ cards, transactions
                         ))
                     ) : (
                         <div className="text-center py-12">
-                            <p className="text-brand-text-secondary">Keine Transaktionen für diese Karte in {selectedYear} gefunden.</p>
+                            <p className="text-brand-text-secondary">Keine Transaktionen für dieses Konto in {selectedYear} gefunden.</p>
                         </div>
                     )}
                 </div>

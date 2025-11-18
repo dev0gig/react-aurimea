@@ -13,6 +13,7 @@ interface DashboardPageProps {
     cards: Card[];
     selectedCardId: number | null;
     onCardNavigate: (cardId: number) => void;
+    onSeparateAccountNavigate: (cardId: number) => void;
     onAddCard: (card: Omit<Card, 'id'>) => void;
     onEditCard: (cardId: number) => void;
     transactions: Transaction[];
@@ -32,7 +33,7 @@ const getViennaFirstOfMonth = () => {
 };
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ 
-    cards, selectedCardId, onCardNavigate, onAddCard, onEditCard,
+    cards, selectedCardId, onCardNavigate, onSeparateAccountNavigate, onAddCard, onEditCard,
     transactions, fixedCosts, onTransactionNavigate, onAddTransactionClick, onEditTransaction, onDeleteTransaction, 
     onFixedCostNavigate
 }) => {
@@ -112,6 +113,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
                     cards={cards}
                     selectedCardId={selectedCardId}
                     onCardNavigate={onCardNavigate}
+                    onSeparateAccountNavigate={onSeparateAccountNavigate}
                     onAddCard={onAddCard}
                     onEditCard={onEditCard}
                 />

@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface MobileNavProps {
@@ -10,6 +11,7 @@ const navIcons: { [key: string]: string } = {
     'Übersicht': 'dashboard',
     'Transaktionen': 'receipt_long',
     'Statistiken': 'bar_chart',
+    'Separate Konten': 'credit_card_off',
 };
 
 const MobileNav: React.FC<MobileNavProps> = ({ activeTab, setActiveTab, navItems }) => {

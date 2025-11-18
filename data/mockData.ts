@@ -1,12 +1,9 @@
+
 import React from 'react';
 
 export interface Card {
   id: number;
   title: string;
-  number: string;
-  holder: string;
-  expiry: string;
-  color: string;
   includeInTotals?: boolean;
 }
 

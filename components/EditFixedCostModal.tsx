@@ -106,7 +106,7 @@ const EditFixedCostModal: React.FC<EditFixedCostModalProps> = ({ isOpen, onClose
             />
           </div>
           <div>
-            <label htmlFor="subCardEdit" className="block text-sm font-medium text-brand-text-secondary mb-1">Karte belasten</label>
+            <label htmlFor="subCardEdit" className="block text-sm font-medium text-brand-text-secondary mb-1">Konto belasten</label>
             <select
                 id="subCardEdit"
                 value={cardId}
@@ -115,7 +115,7 @@ const EditFixedCostModal: React.FC<EditFixedCostModalProps> = ({ isOpen, onClose
             >
                 {cards.map(card => (
                     <option key={card.id} value={card.id}>
-                        {card.title} - **** {card.number.slice(-4)}
+                        {card.title}
                     </option>
                 ))}
             </select>

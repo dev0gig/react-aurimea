@@ -141,7 +141,7 @@ const StatisticsPage: React.FC<StatisticsPageProps> = ({ cards, transactions, se
             
             <div className="bg-brand-surface p-6 rounded-3xl mb-6 border border-brand-surface-alt">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <h2 className="text-lg font-semibold text-white">Karte auswählen</h2>
+                    <h2 className="text-lg font-semibold text-white">Konto auswählen</h2>
                     <div className="flex items-center gap-2 bg-brand-surface-alt p-1 rounded-full">
                         <button onClick={handlePrevMonth} className="p-1 rounded-full hover:bg-brand-surface transition-colors">
                             <span className="material-symbols-outlined" style={{fontSize: '20px'}}>chevron_left</span>
@@ -163,7 +163,7 @@ const StatisticsPage: React.FC<StatisticsPageProps> = ({ cards, transactions, se
                                     : 'bg-brand-surface-alt text-brand-text-secondary hover:text-white hover:bg-brand-surface-alt/70'
                             }`}
                         >
-                            {card.title} - **** {card.number.slice(-4)}
+                            {card.title}
                         </button>
                     ))}
                 </div>
@@ -239,14 +239,14 @@ const StatisticsPage: React.FC<StatisticsPageProps> = ({ cards, transactions, se
                         </div>
                     ) : (
                         <div className="h-full flex items-center justify-center text-brand-text-secondary min-h-[220px]">
-                            Keine Ausgabendaten für diese Karte in diesem Monat.
+                            Keine Ausgabendaten für dieses Konto in diesem Monat.
                         </div>
                     )}
                     </div>
                 </div>
             ) : (
                  <div className="text-center py-12 bg-brand-surface rounded-3xl border border-brand-surface-alt">
-                    <p className="text-brand-text-secondary">Bitte wählen Sie eine Karte aus, um die Statistiken anzuzeigen.</p>
+                    <p className="text-brand-text-secondary">Bitte wählen Sie ein Konto aus, um die Statistiken anzuzeigen.</p>
                 </div>
             )}
             <style>{`

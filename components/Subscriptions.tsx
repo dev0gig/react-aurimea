@@ -6,13 +6,15 @@ import type { FixedCost as Subscription } from '../data/mockData';
 interface SubscriptionsProps {
     subscriptions: Subscription[];
     onAddClick: () => void;
-    onSubscriptionNavigate: (subscriptionId: number) => void;
-    onEditSubscription: (id: number) => void;
-    onDeleteSubscription: (id: number) => void;
+    // FIX: Allow string IDs for subscriptions to match the Transaction type.
+    onSubscriptionNavigate: (subscriptionId: number | string) => void;
+    onEditSubscription: (id: number | string) => void;
+    onDeleteSubscription: (id: number | string) => void;
 }
 
 const Subscriptions: React.FC<SubscriptionsProps> = ({ subscriptions, onAddClick, onSubscriptionNavigate, onEditSubscription, onDeleteSubscription }) => {
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  // FIX: Allow string IDs for the open menu state.
+  const [openMenuId, setOpenMenuId] = useState<number | string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

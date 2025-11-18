@@ -4,6 +4,7 @@ import Header from './components/Header';
 import DashboardPage from './components/DashboardPage';
 import TransactionsPage from './components/TransactionsPage';
 import StatisticsPage from './components/StatisticsPage';
+import SeparateAccountsPage from './components/SeparateAccountsPage';
 import SearchModal from './components/SearchModal';
 import AddTransactionModal from './components/AddTransactionModal';
 import EditTransactionModal from './components/EditTransactionModal';
@@ -26,6 +27,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   
   const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
+  const [selectedSeparateCardId, setSelectedSeparateCardId] = useState<number | null>(null);
   const [selectedTransactionId, setSelectedTransactionId] = useState<number | string | null>(null);
   
   // Modal States
@@ -52,6 +54,16 @@ const App: React.FC = () => {
         ]);
 
         const processCards = (cardList: Card[]) => cardList.map(c => ({ ...c, includeInTotals: c.includeInTotals ?? true }));
+        
+        const selectInitialCard = (cardList: Card[]) => {
+            const firstIncluded = cardList.find(c => c.includeInTotals);
+            if (firstIncluded) {
+                setSelectedCardId(firstIncluded.id);
+            } else if (cardList.length > 0) {
+                // Fallback to first card if no card is included in totals
+                setSelectedCardId(cardList[0].id);
+            }
+        };
 
         if (dbCards.length === 0 && dbManualTransactions.length === 0) {
           // First time load, populate DB with mock data
@@ -62,21 +74,18 @@ const App: React.FC = () => {
           ]);
           setCards(processedCards);
           setManualTransactions(initialTransactions);
-          if (processedCards.length > 0) {
-            setSelectedCardId(processedCards[0].id);
-          }
+          selectInitialCard(processedCards);
         } else {
           const processedCards = processCards(dbCards);
           setCards(processedCards);
           setManualTransactions(dbManualTransactions);
-           if (processedCards.length > 0) {
-            setSelectedCardId(processedCards[0].id);
-          }
+          selectInitialCard(processedCards);
         }
       } catch (error) {
         console.error("Failed to load data from IndexedDB", error);
         // Fallback to initial data if DB fails
-        setCards(initialCards.map(c => ({...c, includeInTotals: c.includeInTotals ?? true})));
+        const processedCards = initialCards.map(c => ({...c, includeInTotals: c.includeInTotals ?? true}));
+        setCards(processedCards);
         setManualTransactions(initialTransactions);
       } finally {
         setIsLoading(false);
@@ -86,7 +95,7 @@ const App: React.FC = () => {
   }, []);
 
 
-  const navItems = ['Übersicht', 'Transaktionen', 'Statistiken'];
+  const navItems = ['Übersicht', 'Transaktionen', 'Statistiken', 'Separate Konten'];
 
   const combinedTransactions = useMemo(() => {
     const fixedCostTemplates = manualTransactions.filter(t => t.isFixedCost);
@@ -158,15 +167,18 @@ const App: React.FC = () => {
     return uniqueTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [manualTransactions]);
 
-  const includedCardIds = useMemo(() => new Set(cards.filter(c => c.includeInTotals).map(c => c.id)), [cards]);
+  const includedCards = useMemo(() => cards.filter(c => c.includeInTotals ?? true), [cards]);
+  const excludedCards = useMemo(() => cards.filter(c => !(c.includeInTotals ?? true)), [cards]);
 
-  const transactionsForDashboard = useMemo(() => {
-     return combinedTransactions.filter(t => includedCardIds.has(t.cardId));
-  }, [combinedTransactions, includedCardIds]);
+  const transactionsForIncludedCards = useMemo(() => {
+    const includedCardIds = new Set(includedCards.map(c => c.id));
+    return combinedTransactions.filter(t => includedCardIds.has(t.cardId));
+  }, [combinedTransactions, includedCards]);
 
   const fixedCostsForDashboard = useMemo(() => {
-     return manualTransactions.filter(t => t.isFixedCost && includedCardIds.has(t.cardId));
-  }, [manualTransactions, includedCardIds]);
+    const includedCardIds = new Set(includedCards.map(c => c.id));
+    return manualTransactions.filter(t => t.isFixedCost && includedCardIds.has(t.cardId));
+  }, [manualTransactions, includedCards]);
 
   const handleAddCard = async (newCardData: Omit<Card, 'id'>) => {
     const newCard: Card = {
@@ -657,6 +669,11 @@ const App: React.FC = () => {
     setActiveTab('Statistiken');
   };
 
+  const handleSeparateAccountNavigation = (cardId: number) => {
+    setSelectedSeparateCardId(cardId);
+    setActiveTab('Separate Konten');
+  };
+
   const handleTransactionNavigation = (transactionId: number | string, cardId: number) => {
     setSelectedCardId(cardId);
     setSelectedTransactionId(transactionId);
@@ -685,9 +702,10 @@ const App: React.FC = () => {
                 cards={cards}
                 selectedCardId={selectedCardId}
                 onCardNavigate={handleCardNavigation}
+                onSeparateAccountNavigate={handleSeparateAccountNavigation}
                 onAddCard={handleAddCard}
                 onEditCard={handleOpenEditCardModal}
-                transactions={transactionsForDashboard}
+                transactions={transactionsForIncludedCards}
                 fixedCosts={fixedCostsForDashboard}
                 onTransactionNavigate={handleTransactionNavigation}
                 onAddTransactionClick={handleOpenAddTransactionModal}
@@ -698,8 +716,8 @@ const App: React.FC = () => {
             )}
             {activeTab === 'Transaktionen' && (
                 <TransactionsPage
-                    cards={cards}
-                    transactions={combinedTransactions}
+                    cards={includedCards}
+                    transactions={transactionsForIncludedCards}
                     selectedCardId={selectedCardId}
                     setSelectedCardId={setSelectedCardId}
                     selectedTransactionId={selectedTransactionId}
@@ -711,10 +729,21 @@ const App: React.FC = () => {
             )}
             {activeTab === 'Statistiken' && (
                 <StatisticsPage 
-                    cards={cards}
-                    transactions={combinedTransactions}
+                    cards={includedCards}
+                    transactions={transactionsForIncludedCards}
                     selectedCardId={selectedCardId}
                     setSelectedCardId={setSelectedCardId}
+                />
+            )}
+            {activeTab === 'Separate Konten' && (
+                <SeparateAccountsPage
+                    cards={excludedCards}
+                    transactions={combinedTransactions}
+                    onAddTransactionClick={handleOpenAddTransactionModal}
+                    onEditTransaction={handleOpenEditTransactionModal}
+                    onDeleteTransaction={handleDeleteRequest}
+                    selectedCardId={selectedSeparateCardId}
+                    setSelectedCardId={setSelectedSeparateCardId}
                 />
             )}
           </>

@@ -41,11 +41,20 @@ const AddFixedCostModal: React.FC<AddFixedCostModalProps> = ({ isOpen, onClose, 
       return;
     }
 
+    // FIX: Add missing properties to satisfy the Omit<Transaction, 'id'> type.
+    const now = new Date();
+    const viennaDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Vienna' });
+
     onAddFixedCost({
       name,
-      amount: parsedAmount,
+      amount: -Math.abs(parsedAmount),
       billingDay: parsedBillingDay,
-      cardId,
+      cardId: Number(cardId),
+      date: viennaDateStr,
+      type: 'expense',
+      category: 'Fixkosten',
+      isFixedCost: true,
+      frequency: 'monthly',
     });
     // Reset form
     setName('');
@@ -99,7 +108,7 @@ const AddFixedCostModal: React.FC<AddFixedCostModalProps> = ({ isOpen, onClose, 
             />
           </div>
           <div>
-            <label htmlFor="subCard" className="block text-sm font-medium text-brand-text-secondary mb-1">Karte belasten</label>
+            <label htmlFor="subCard" className="block text-sm font-medium text-brand-text-secondary mb-1">Konto belasten</label>
             <select
                 id="subCard"
                 value={cardId}
@@ -108,7 +117,7 @@ const AddFixedCostModal: React.FC<AddFixedCostModalProps> = ({ isOpen, onClose, 
             >
                 {cards.map(card => (
                     <option key={card.id} value={card.id}>
-                        {card.title} - **** {card.number.slice(-4)}
+                        {card.title}
                     </option>
                 ))}
             </select>

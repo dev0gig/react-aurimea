@@ -40,6 +40,13 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({
     const menuRef = useRef<HTMLDivElement>(null);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
+    // Automatically select the first card if none is selected
+    useEffect(() => {
+        if (!selectedCardId && cards.length > 0) {
+            setSelectedCardId(cards[0].id);
+        }
+    }, [cards, selectedCardId, setSelectedCardId]);
+
     useEffect(() => {
         if (selectedTransactionId) {
             const element = transactionRefs.current.get(selectedTransactionId);
@@ -94,6 +101,21 @@ const TransactionsPage: React.FC<TransactionsPageProps> = ({
         const [year, monthIndex] = key.split('-');
         return new Date(Date.UTC(parseInt(year), parseInt(monthIndex))).toLocaleString('de-DE', { month: 'long', year: 'numeric', timeZone: 'Europe/Vienna' });
     };
+
+    if (!selectedCardId) {
+         return (
+            <main className="mt-8 animate-fade-in">
+                <h1 className="text-3xl font-bold text-white mb-6">Transaktionen</h1>
+                <div className="text-center py-20 bg-brand-surface rounded-3xl border border-brand-surface-alt flex flex-col items-center">
+                    <div className="bg-brand-surface-alt p-4 rounded-full mb-4">
+                         <span className="material-symbols-outlined text-4xl text-brand-text-secondary">receipt_long</span>
+                    </div>
+                    <h3 className="text-xl font-semibold mb-2">Keine Konten vorhanden</h3>
+                    <p className="text-brand-text-secondary max-w-xs">Fügen Sie zuerst ein Konto im Dashboard hinzu.</p>
+                </div>
+            </main>
+         )
+    }
 
     return (
         <main className="mt-8 animate-fade-in">

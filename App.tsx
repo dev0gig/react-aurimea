@@ -31,6 +31,7 @@ const MainContent: React.FC = () => {
   } = useFinance();
 
   const [activeTab, setActiveTab] = useState('Übersicht');
+  const navItems = ['Übersicht', 'Transaktionen', 'Statistiken', 'Separate Konten'];
   
   // Local UI State (Navigation & Modals)
   const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
@@ -52,78 +53,107 @@ const MainContent: React.FC = () => {
   const [cardToEdit, setCardToEdit] = useState<Card | null>(null);
   const [itemToDelete, setItemToDelete] = useState<{ id: number | string; type: 'transaction' | 'card' } | null>(null);
 
-  const navItems = ['Übersicht', 'Transaktionen', 'Statistiken', 'Separate Konten'];
-
   // --- History Management & Back Button Logic ---
   useEffect(() => {
-    // Set initial history state
-    window.history.replaceState({ tab: 'Übersicht', modal: null }, '');
+    // Initial state logic: replace current state to have a baseline
+    if (!window.history.state) {
+        window.history.replaceState({ tab: 'Übersicht', modal: null }, '');
+    }
 
     const handlePopState = (event: PopStateEvent) => {
       const state = event.state;
+      
+      // Close all modals first (default safe state)
+      setIsSearchOpen(false);
+      setSettingsModalOpen(false);
+      setAddTransactionModalOpen(false);
+      setEditTransactionModalOpen(false);
+      setEditCardModalOpen(false);
+      setConfirmationModalOpen(false);
+      setDeleteAllConfirmationOpen(false);
+      setDeleteCardConfirmationOpen(false);
+
       if (state) {
-        // 1. Handle Tab Change
-        if (state.tab && state.tab !== activeTab) {
+        // 1. Sync Tab State
+        if (state.tab && navItems.includes(state.tab)) {
           setActiveTab(state.tab);
         }
 
-        // 2. Handle Modal Closing
-        // If the history state says "modal: null", ensure all modals are closed.
-        if (!state.modal) {
-            setIsSearchOpen(false);
-            setSettingsModalOpen(false);
-            setAddTransactionModalOpen(false);
-            setEditTransactionModalOpen(false);
-            setEditCardModalOpen(false);
-            setConfirmationModalOpen(false);
-            setDeleteAllConfirmationOpen(false);
-            setDeleteCardConfirmationOpen(false);
-        }
+        // 2. Sync Modal State
+        const modalName = state.modal;
+        if (modalName === 'search') setIsSearchOpen(true);
+        if (modalName === 'settings') setSettingsModalOpen(true);
+        if (modalName === 'addTransaction') setAddTransactionModalOpen(true);
+        if (modalName === 'editTransaction') setEditTransactionModalOpen(true);
+        if (modalName === 'editCard') setEditCardModalOpen(true);
+        if (modalName === 'confirmDelete') setConfirmationModalOpen(true);
+        if (modalName === 'deleteAllConfirm') setDeleteAllConfirmationOpen(true);
+        if (modalName === 'confirmDeleteCard') setDeleteCardConfirmationOpen(true);
+      } else {
+          // Fallback to overview if state is lost
+          setActiveTab('Übersicht');
       }
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, []); // Run once on mount
+  }, []); 
 
-  // Helper to push history state
-  const updateHistory = (tab: string, modal: string | null) => {
+  // Helper: Push new state
+  const pushHistoryState = (tab: string, modal: string | null) => {
       window.history.pushState({ tab, modal }, '');
   };
 
-  // Wrapper to go back using browser history (closes modals)
+  // Helper: Go back (triggers popstate)
   const goBack = () => {
       window.history.back();
   };
 
   const navigateToTab = (tab: string) => {
+      if (tab === activeTab) return;
       setActiveTab(tab);
-      updateHistory(tab, null);
+      pushHistoryState(tab, null);
+      window.scrollTo(0, 0);
   };
 
   // --- Swipe Navigation Logic ---
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [touchStart, setTouchStart] = useState<{x: number, y: number} | null>(null);
+  const [touchEnd, setTouchEnd] = useState<{x: number, y: number} | null>(null);
   const minSwipeDistance = 50;
 
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
+    setTouchStart({
+        x: e.targetTouches[0].clientX,
+        y: e.targetTouches[0].clientY
+    });
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
+    setTouchEnd({
+        x: e.targetTouches[0].clientX,
+        y: e.targetTouches[0].clientY
+    });
   };
 
   const onTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
     
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
+    const xDiff = touchStart.x - touchEnd.x;
+    const yDiff = touchStart.y - touchEnd.y;
     
-    // Don't swipe if a modal is open
-    if (isSearchOpen || isSettingsModalOpen || isAddTransactionModalOpen || isEditTransactionModalOpen || isEditCardModalOpen || isConfirmationModalOpen) return;
+    // Horizontal swipe detection: X distance > min AND X distance > Y distance (to ignore scrolling)
+    if (Math.abs(xDiff) < minSwipeDistance || Math.abs(yDiff) >= Math.abs(xDiff)) return;
+
+    const isLeftSwipe = xDiff > 0;
+    const isRightSwipe = xDiff < 0;
+    
+    // Prevent swipe if modals are open
+    const isAnyModalOpen = isSearchOpen || isSettingsModalOpen || isAddTransactionModalOpen || 
+                           isEditTransactionModalOpen || isEditCardModalOpen || isConfirmationModalOpen ||
+                           isDeleteAllConfirmationOpen || isDeleteCardConfirmationOpen;
+                           
+    if (isAnyModalOpen) return;
 
     const currentIndex = navItems.indexOf(activeTab);
     
@@ -144,11 +174,16 @@ const MainContent: React.FC = () => {
   const handleTransactionNavigation = (transactionId: number | string, cardId: number) => {
     setSelectedCardId(cardId);
     setSelectedTransactionId(transactionId);
-    setIsSearchOpen(false); // Force close visual state
+    
+    if (isSearchOpen) {
+        // Special handling for search: If we navigate from search, we are effectively "closing" search
+        // and moving to a tab. To keep history clean, we might want to replace the search state 
+        // or just push a new state. Pushing is safer for "Back".
+    }
+    setIsSearchOpen(false); 
+    
     setActiveTab('Transaktionen');
-    // We push a new history entry for the transaction view. 
-    // Going "Back" will conceptually go back to the Search Modal if that was the previous state.
-    updateHistory('Transaktionen', null);
+    pushHistoryState('Transaktionen', null);
   };
 
   const handleCardNavigation = (cardId: number) => {
@@ -156,11 +191,11 @@ const MainContent: React.FC = () => {
     navigateToTab('Statistiken');
   };
 
-  // --- Action Handlers (updated with History) ---
+  // --- Action Handlers ---
   const openAddTransaction = (cardId: number | null) => {
     setCardIdForNewTransaction(cardId);
     setAddTransactionModalOpen(true);
-    updateHistory(activeTab, 'addTransaction');
+    pushHistoryState(activeTab, 'addTransaction');
   };
 
   const openEditTransaction = (transId: number | string) => {
@@ -172,14 +207,14 @@ const MainContent: React.FC = () => {
     if (trans) {
       setTransactionToEdit(trans);
       setEditTransactionModalOpen(true);
-      updateHistory(activeTab, 'editTransaction');
+      pushHistoryState(activeTab, 'editTransaction');
     }
   };
 
   const openDeleteTransaction = (id: number | string) => {
     setItemToDelete({ id, type: 'transaction' });
     setConfirmationModalOpen(true);
-    updateHistory(activeTab, 'confirmDelete');
+    pushHistoryState(activeTab, 'confirmDelete');
   };
 
   const openEditCard = (cardId: number) => {
@@ -187,21 +222,29 @@ const MainContent: React.FC = () => {
     if (card) {
       setCardToEdit(card);
       setEditCardModalOpen(true);
-      updateHistory(activeTab, 'editCard');
+      pushHistoryState(activeTab, 'editCard');
     }
   };
 
   const initiateDeleteCard = () => {
       if (cardToEdit) {
-          // Special Case: Switching from one modal to another.
-          // We replace the "Edit Card" modal in history with "Confirm Delete" or push on top.
-          // Let's push on top to allow "Back" to go to Edit.
           setItemToDelete({ id: cardToEdit.id, type: 'card' });
+          // Swap modals in history by replacing state
           setEditCardModalOpen(false); 
           setDeleteCardConfirmationOpen(true);
-          updateHistory(activeTab, 'confirmDeleteCard');
+          window.history.replaceState({ tab: activeTab, modal: 'confirmDeleteCard' }, '');
       }
   }
+  
+  const openSearch = () => {
+      setIsSearchOpen(true);
+      pushHistoryState(activeTab, 'search');
+  };
+
+  const openSettings = () => {
+      setSettingsModalOpen(true);
+      pushHistoryState(activeTab, 'settings');
+  };
 
   const handleExportData = async () => {
     const dataToExport = { cards, manualTransactions };
@@ -213,7 +256,7 @@ const MainContent: React.FC = () => {
     a.download = `aurimea-backup-${new Date().toLocaleDateString('en-CA')}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    goBack(); // Close settings
+    goBack();
   };
 
   const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -226,7 +269,7 @@ const MainContent: React.FC = () => {
         if (typeof text !== 'string') return;
         await importData(JSON.parse(text));
         alert('Daten erfolgreich importiert!');
-        goBack(); // Close settings
+        goBack();
       } catch (err) {
         alert('Fehler beim Importieren.');
       }
@@ -248,14 +291,15 @@ const MainContent: React.FC = () => {
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
+        style={{ touchAction: 'pan-y' }} // Critical: Allows vertical scroll but lets JS handle horizontal swipes
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <Header 
             activeTab={activeTab} 
             setActiveTab={navigateToTab} 
             navItems={navItems} 
-            onSearchClick={() => { setIsSearchOpen(true); updateHistory(activeTab, 'search'); }} 
-            onSettingsClick={() => { setSettingsModalOpen(true); updateHistory(activeTab, 'settings'); }} 
+            onSearchClick={openSearch} 
+            onSettingsClick={openSettings} 
         />
         
         {activeTab === 'Übersicht' && (
@@ -315,7 +359,11 @@ const MainContent: React.FC = () => {
         onClose={goBack}
         onExport={handleExportData}
         onImport={handleImportData}
-        onDeleteAll={() => { goBack(); setDeleteAllConfirmationOpen(true); updateHistory(activeTab, 'deleteAllConfirm'); }}
+        onDeleteAll={() => { 
+            setSettingsModalOpen(false);
+            setDeleteAllConfirmationOpen(true);
+            window.history.replaceState({ tab: activeTab, modal: 'deleteAllConfirm' }, '');
+        }}
       />
       <AddTransactionModal 
         isOpen={isAddTransactionModalOpen}

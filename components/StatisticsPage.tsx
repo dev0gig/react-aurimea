@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import { useFinance } from '../context/FinanceContext';
 import { getViennaFirstOfMonth } from '../utils/dateUtils';
@@ -33,6 +33,13 @@ const StatCard: React.FC<{ title: string; amount: number; type: 'balance' | 'inc
 const StatisticsPage: React.FC<StatisticsPageProps> = ({ selectedCardId, setSelectedCardId }) => {
     const { includedCards: cards, transactionsForIncludedCards: transactions } = useFinance();
     const [currentDate, setCurrentDate] = useState(getViennaFirstOfMonth());
+
+    // Automatically select the first card if none is selected
+    useEffect(() => {
+        if (!selectedCardId && cards.length > 0) {
+            setSelectedCardId(cards[0].id);
+        }
+    }, [cards, selectedCardId, setSelectedCardId]);
 
     const handlePrevMonth = () => setCurrentDate(p => { const d = new Date(p); d.setUTCMonth(d.getUTCMonth() - 1); return d; });
     const handleNextMonth = () => setCurrentDate(p => { const d = new Date(p); d.setUTCMonth(d.getUTCMonth() + 1); return d; });
@@ -193,8 +200,8 @@ const StatisticsPage: React.FC<StatisticsPageProps> = ({ selectedCardId, setSele
                     <div className="bg-brand-surface-alt p-4 rounded-full mb-4">
                          <span className="material-symbols-outlined text-4xl text-brand-text-secondary">analytics</span>
                     </div>
-                    <h3 className="text-xl font-semibold mb-2">Wählen Sie ein Konto aus</h3>
-                    <p className="text-brand-text-secondary max-w-xs">Tippen Sie oben auf ein Konto, um detaillierte Statistiken und Analysen zu sehen.</p>
+                    <h3 className="text-xl font-semibold mb-2">Keine Daten verfügbar</h3>
+                    <p className="text-brand-text-secondary max-w-xs">Bitte fügen Sie ein Konto hinzu, um Statistiken zu sehen.</p>
                 </div>
             )}
             <style>{`

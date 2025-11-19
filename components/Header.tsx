@@ -51,7 +51,7 @@ const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab, navItems, onSe
       <div className="flex items-center gap-4 md:gap-12">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-3xl text-brand-accent-green">account_balance_wallet</span>
-          <span className="text-xl font-bold hidden sm:block">AuriMea</span>
+          <span className="text-xl font-bold block">AuriMea</span>
         </div>
         
         <nav 

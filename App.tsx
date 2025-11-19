@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FinanceProvider, useFinance } from './context/FinanceContext';
 import Header from './components/Header';
 import DashboardPage from './components/DashboardPage';
@@ -54,23 +54,113 @@ const MainContent: React.FC = () => {
 
   const navItems = ['Übersicht', 'Transaktionen', 'Statistiken', 'Separate Konten'];
 
-  // Navigation Handlers
+  // --- History Management & Back Button Logic ---
+  useEffect(() => {
+    // Set initial history state
+    window.history.replaceState({ tab: 'Übersicht', modal: null }, '');
+
+    const handlePopState = (event: PopStateEvent) => {
+      const state = event.state;
+      if (state) {
+        // 1. Handle Tab Change
+        if (state.tab && state.tab !== activeTab) {
+          setActiveTab(state.tab);
+        }
+
+        // 2. Handle Modal Closing
+        // If the history state says "modal: null", ensure all modals are closed.
+        if (!state.modal) {
+            setIsSearchOpen(false);
+            setSettingsModalOpen(false);
+            setAddTransactionModalOpen(false);
+            setEditTransactionModalOpen(false);
+            setEditCardModalOpen(false);
+            setConfirmationModalOpen(false);
+            setDeleteAllConfirmationOpen(false);
+            setDeleteCardConfirmationOpen(false);
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []); // Run once on mount
+
+  // Helper to push history state
+  const updateHistory = (tab: string, modal: string | null) => {
+      window.history.pushState({ tab, modal }, '');
+  };
+
+  // Wrapper to go back using browser history (closes modals)
+  const goBack = () => {
+      window.history.back();
+  };
+
+  const navigateToTab = (tab: string) => {
+      setActiveTab(tab);
+      updateHistory(tab, null);
+  };
+
+  // --- Swipe Navigation Logic ---
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    // Don't swipe if a modal is open
+    if (isSearchOpen || isSettingsModalOpen || isAddTransactionModalOpen || isEditTransactionModalOpen || isEditCardModalOpen || isConfirmationModalOpen) return;
+
+    const currentIndex = navItems.indexOf(activeTab);
+    
+    if (isLeftSwipe) {
+        if (currentIndex < navItems.length - 1) {
+             navigateToTab(navItems[currentIndex + 1]);
+        }
+    }
+    
+    if (isRightSwipe) {
+        if (currentIndex > 0) {
+            navigateToTab(navItems[currentIndex - 1]);
+        }
+    }
+  };
+
+  // --- Navigation Handlers ---
   const handleTransactionNavigation = (transactionId: number | string, cardId: number) => {
     setSelectedCardId(cardId);
     setSelectedTransactionId(transactionId);
+    setIsSearchOpen(false); // Force close visual state
     setActiveTab('Transaktionen');
-    setIsSearchOpen(false);
+    // We push a new history entry for the transaction view. 
+    // Going "Back" will conceptually go back to the Search Modal if that was the previous state.
+    updateHistory('Transaktionen', null);
   };
 
   const handleCardNavigation = (cardId: number) => {
     setSelectedCardId(cardId);
-    setActiveTab('Statistiken');
+    navigateToTab('Statistiken');
   };
 
-  // Action Handlers
+  // --- Action Handlers (updated with History) ---
   const openAddTransaction = (cardId: number | null) => {
     setCardIdForNewTransaction(cardId);
     setAddTransactionModalOpen(true);
+    updateHistory(activeTab, 'addTransaction');
   };
 
   const openEditTransaction = (transId: number | string) => {
@@ -82,12 +172,14 @@ const MainContent: React.FC = () => {
     if (trans) {
       setTransactionToEdit(trans);
       setEditTransactionModalOpen(true);
+      updateHistory(activeTab, 'editTransaction');
     }
   };
 
   const openDeleteTransaction = (id: number | string) => {
     setItemToDelete({ id, type: 'transaction' });
     setConfirmationModalOpen(true);
+    updateHistory(activeTab, 'confirmDelete');
   };
 
   const openEditCard = (cardId: number) => {
@@ -95,14 +187,19 @@ const MainContent: React.FC = () => {
     if (card) {
       setCardToEdit(card);
       setEditCardModalOpen(true);
+      updateHistory(activeTab, 'editCard');
     }
   };
 
   const initiateDeleteCard = () => {
       if (cardToEdit) {
+          // Special Case: Switching from one modal to another.
+          // We replace the "Edit Card" modal in history with "Confirm Delete" or push on top.
+          // Let's push on top to allow "Back" to go to Edit.
           setItemToDelete({ id: cardToEdit.id, type: 'card' });
-          setEditCardModalOpen(false);
+          setEditCardModalOpen(false); 
           setDeleteCardConfirmationOpen(true);
+          updateHistory(activeTab, 'confirmDeleteCard');
       }
   }
 
@@ -116,7 +213,7 @@ const MainContent: React.FC = () => {
     a.download = `aurimea-backup-${new Date().toLocaleDateString('en-CA')}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    setSettingsModalOpen(false);
+    goBack(); // Close settings
   };
 
   const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,7 +226,7 @@ const MainContent: React.FC = () => {
         if (typeof text !== 'string') return;
         await importData(JSON.parse(text));
         alert('Daten erfolgreich importiert!');
-        setSettingsModalOpen(false);
+        goBack(); // Close settings
       } catch (err) {
         alert('Fehler beim Importieren.');
       }
@@ -146,15 +243,26 @@ const MainContent: React.FC = () => {
   }
 
   return (
-    <div className="bg-brand-background text-brand-text font-sans min-h-screen pb-20 md:pb-0">
+    <div 
+        className="bg-brand-background text-brand-text font-sans min-h-screen pb-20 md:pb-0"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+    >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <Header activeTab={activeTab} setActiveTab={setActiveTab} navItems={navItems} onSearchClick={() => setIsSearchOpen(true)} onSettingsClick={() => setSettingsModalOpen(true)} />
+        <Header 
+            activeTab={activeTab} 
+            setActiveTab={navigateToTab} 
+            navItems={navItems} 
+            onSearchClick={() => { setIsSearchOpen(true); updateHistory(activeTab, 'search'); }} 
+            onSettingsClick={() => { setSettingsModalOpen(true); updateHistory(activeTab, 'settings'); }} 
+        />
         
         {activeTab === 'Übersicht' && (
           <DashboardPage
             selectedCardId={selectedCardId}
             onCardNavigate={handleCardNavigation}
-            onSeparateAccountNavigate={(id) => { setSelectedCardId(id); setActiveTab('Separate Konten'); }}
+            onSeparateAccountNavigate={(id) => { setSelectedCardId(id); navigateToTab('Separate Konten'); }}
             onEditCard={openEditCard}
             onTransactionNavigate={handleTransactionNavigation}
             onAddTransactionClick={openAddTransaction}
@@ -193,34 +301,34 @@ const MainContent: React.FC = () => {
             />
         )}
       </div>
-      <MobileNav activeTab={activeTab} setActiveTab={setActiveTab} navItems={navItems} />
+      <MobileNav activeTab={activeTab} setActiveTab={navigateToTab} navItems={navItems} />
       
       <SearchModal 
         isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
+        onClose={goBack}
         transactions={transactions}
         cards={cards}
         onNavigate={handleTransactionNavigation}
       />
       <SettingsModal 
         isOpen={isSettingsModalOpen}
-        onClose={() => setSettingsModalOpen(false)}
+        onClose={goBack}
         onExport={handleExportData}
         onImport={handleImportData}
-        onDeleteAll={() => { setSettingsModalOpen(false); setDeleteAllConfirmationOpen(true); }}
+        onDeleteAll={() => { goBack(); setDeleteAllConfirmationOpen(true); updateHistory(activeTab, 'deleteAllConfirm'); }}
       />
       <AddTransactionModal 
         isOpen={isAddTransactionModalOpen}
-        onClose={() => setAddTransactionModalOpen(false)}
-        onAddTransaction={(data) => { addTransaction(data); setAddTransactionModalOpen(false); }}
+        onClose={goBack}
+        onAddTransaction={(data) => { addTransaction(data); goBack(); }}
         cards={cards}
         preselectedCardId={cardIdForNewTransaction}
       />
       {transactionToEdit && (
         <EditTransactionModal 
             isOpen={isEditTransactionModalOpen}
-            onClose={() => setEditTransactionModalOpen(false)}
-            onUpdateTransaction={(data) => { updateTransaction(data); setEditTransactionModalOpen(false); }}
+            onClose={goBack}
+            onUpdateTransaction={(data) => { updateTransaction(data); goBack(); }}
             transaction={transactionToEdit}
             cards={cards}
         />
@@ -228,31 +336,31 @@ const MainContent: React.FC = () => {
       {cardToEdit && (
         <EditCardModal 
           isOpen={isEditCardModalOpen}
-          onClose={() => setEditCardModalOpen(false)}
-          onUpdateCard={(data) => { updateCard(data); setEditCardModalOpen(false); }}
+          onClose={goBack}
+          onUpdateCard={(data) => { updateCard(data); goBack(); }}
           onDelete={initiateDeleteCard}
           card={cardToEdit}
         />
       )}
       <ConfirmationModal 
         isOpen={isConfirmationModalOpen}
-        onClose={() => setConfirmationModalOpen(false)}
-        onConfirm={() => { if(itemToDelete) deleteTransaction(itemToDelete.id); setConfirmationModalOpen(false); }}
+        onClose={goBack}
+        onConfirm={() => { if(itemToDelete) deleteTransaction(itemToDelete.id); goBack(); }}
         title="Transaktion löschen"
         message="Sind Sie sicher, dass Sie diese Transaktion löschen möchten?"
       />
        <ConfirmationModal 
         isOpen={isDeleteCardConfirmationOpen}
-        onClose={() => setDeleteCardConfirmationOpen(false)}
-        onConfirm={() => { if(itemToDelete && itemToDelete.type === 'card') deleteCard(Number(itemToDelete.id)); setDeleteCardConfirmationOpen(false); if(selectedCardId === itemToDelete?.id) setSelectedCardId(null); }}
+        onClose={goBack}
+        onConfirm={() => { if(itemToDelete && itemToDelete.type === 'card') deleteCard(Number(itemToDelete.id)); goBack(); if(selectedCardId === itemToDelete?.id) setSelectedCardId(null); }}
         title="Konto löschen?"
         message="Warnung: Wenn Sie dieses Konto löschen, werden ALLE zugehörigen Transaktionen und Abonnements ebenfalls unwiderruflich gelöscht."
         confirmText="Konto löschen"
       />
        <ConfirmationModal 
         isOpen={isDeleteAllConfirmationOpen}
-        onClose={() => setDeleteAllConfirmationOpen(false)}
-        onConfirm={() => { deleteAllData(); setDeleteAllConfirmationOpen(false); }}
+        onClose={goBack}
+        onConfirm={() => { deleteAllData(); goBack(); }}
         title="Alle Daten löschen?"
         message="Dies kann nicht rückgängig gemacht werden. Alle Konten und Transaktionen werden gelöscht."
         confirmText="Alles löschen"

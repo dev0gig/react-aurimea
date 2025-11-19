@@ -1,3 +1,4 @@
+
 // sw.js
 
 // Define a unique name and version for the cache.
@@ -9,7 +10,7 @@ const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/index.tsx',
-  'https://cdn-icons-png.flaticon.com/256/3028/3028909.png'
+  'https://cdn-icons-png.flaticon.com/512/10106/10106199.png'
 ];
 
 /**

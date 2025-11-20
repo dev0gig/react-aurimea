@@ -1,97 +1,107 @@
-
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF--8" />
-    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/10106/10106199.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AuriMea</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-    <style>
-      .material-symbols-outlined {
-        vertical-align: middle;
-      }
-      body {
-        background-color: #000000;
-        background-image: linear-gradient(180deg, #151625 0%, #0A0A14 50%, #000000 100%);
-        background-attachment: fixed;
+
+<head>
+  <meta charset="UTF--8" />
+  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/10106/10106199.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AuriMea</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <style>
+    .material-symbols-outlined {
+      vertical-align: middle;
+    }
+
+    body {
+      background-color: #000000;
+      background-image: linear-gradient(180deg, #151625 0%, #0A0A14 50%, #000000 100%);
+      background-attachment: fixed;
+    }
+
+    #stars-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    @keyframes twinkle {
+      0% {
+        opacity: 0.2;
       }
 
-      #stars-container {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        z-index: 0;
+      50% {
+        opacity: 0.6;
       }
 
-      @keyframes twinkle {
-        0%   { opacity: 0.2; }
-        50%  { opacity: 0.6; }
-        100% { opacity: 0.2; }
+      100% {
+        opacity: 0.2;
       }
-      
-      .stars {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 1px;
-        height: 1px;
-        background: transparent;
-        animation-name: twinkle;
-        animation-timing-function: ease-in-out;
-        animation-iteration-count: infinite;
-      }
+    }
 
-      #stars1 {
-        width: 1px;
-        height: 1px;
-        box-shadow: 7vw 83vh #FFF, 81vw 9vh #FFF, 26vw 2vh #FFF, 6vw 53vh #FFF, 43vw 97vh #FFF, 87vw 57vh #FFF, 48vw 72vh #FFF, 19vw 81vh #FFF, 90vw 16vh #FFF, 42vw 36vh #FFF, 98vw 85vh #FFF, 6vw 42vh #FFF, 77vw 59vh #FFF, 79vw 21vh #FFF, 32vw 92vh #FFF, 16vw 86vh #FFF, 95vw 31vh #FFF, 52vw 81vh #FFF, 23vw 41vh #FFF, 8vw 15vh #FFF, 55vw 5vh #FFF, 12vw 25vh #FFF, 68vw 88vh #FFF, 34vw 50vh #FFF, 84vw 38vh #FFF;
-        animation-duration: 7s;
-      }
-    
-      #stars2 {
-        width: 2px;
-        height: 2px;
-        box-shadow: 15vw 67vh #FFF, 91vw 48vh #FFF, 36vw 88vh #FFF, 5vw 8vh #FFF, 63vw 19vh #FFF, 30vw 55vh #FFF, 72vw 91vh #FFF, 99vw 65vh #FFF, 47vw 41vh #FFF, 21vw 73vh #FFF, 88vw 8vh #FFF, 3vw 33vh #FFF, 59vw 4vh #FFF, 29vw 29vh #FFF, 73vw 37vh #FFF;
-        animation-duration: 9s;
-        animation-delay: 2s;
-      }
+    .stars {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 1px;
+      height: 1px;
+      background: transparent;
+      animation-name: twinkle;
+      animation-timing-function: ease-in-out;
+      animation-iteration-count: infinite;
+    }
 
-      #stars3 {
-        width: 3px;
-        height: 3px;
-        box-shadow: 40vw 22vh #FFF, 80vw 75vh #FFF, 10vw 45vh #FFF, 65vw 5vh #FFF, 28vw 60vh #FFF, 93vw 33vh #FFF, 50vw 50vh #FFF;
-        animation-duration: 12s;
-        animation-delay: 4s;
-      }
-    </style>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Ubuntu', 'sans-serif'],
-            },
-            colors: {
-              'brand-bg': '#10101A',
-              'brand-surface': '#1A1B2D',
-              'brand-surface-alt': '#25263B',
-              'brand-text': '#FFFFFF',
-              'brand-text-secondary': '#8A8B9F',
-              'brand-accent-green': '#A6F787',
-              'brand-accent-red': '#F78787',
-            },
+    #stars1 {
+      width: 1px;
+      height: 1px;
+      box-shadow: 7vw 83vh #FFF, 81vw 9vh #FFF, 26vw 2vh #FFF, 6vw 53vh #FFF, 43vw 97vh #FFF, 87vw 57vh #FFF, 48vw 72vh #FFF, 19vw 81vh #FFF, 90vw 16vh #FFF, 42vw 36vh #FFF, 98vw 85vh #FFF, 6vw 42vh #FFF, 77vw 59vh #FFF, 79vw 21vh #FFF, 32vw 92vh #FFF, 16vw 86vh #FFF, 95vw 31vh #FFF, 52vw 81vh #FFF, 23vw 41vh #FFF, 8vw 15vh #FFF, 55vw 5vh #FFF, 12vw 25vh #FFF, 68vw 88vh #FFF, 34vw 50vh #FFF, 84vw 38vh #FFF;
+      animation-duration: 7s;
+    }
+
+    #stars2 {
+      width: 2px;
+      height: 2px;
+      box-shadow: 15vw 67vh #FFF, 91vw 48vh #FFF, 36vw 88vh #FFF, 5vw 8vh #FFF, 63vw 19vh #FFF, 30vw 55vh #FFF, 72vw 91vh #FFF, 99vw 65vh #FFF, 47vw 41vh #FFF, 21vw 73vh #FFF, 88vw 8vh #FFF, 3vw 33vh #FFF, 59vw 4vh #FFF, 29vw 29vh #FFF, 73vw 37vh #FFF;
+      animation-duration: 9s;
+      animation-delay: 2s;
+    }
+
+    #stars3 {
+      width: 3px;
+      height: 3px;
+      box-shadow: 40vw 22vh #FFF, 80vw 75vh #FFF, 10vw 45vh #FFF, 65vw 5vh #FFF, 28vw 60vh #FFF, 93vw 33vh #FFF, 50vw 50vh #FFF;
+      animation-duration: 12s;
+      animation-delay: 4s;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Ubuntu', 'sans-serif'],
+          },
+          colors: {
+            'brand-bg': '#10101A',
+            'brand-surface': '#1A1B2D',
+            'brand-surface-alt': '#25263B',
+            'brand-text': '#FFFFFF',
+            'brand-text-secondary': '#8A8B9F',
+            'brand-accent-green': '#A6F787',
+            'brand-accent-red': '#F78787',
           },
         },
-      }
-    </script>
+      },
+    }
+  </script>
   <script type="importmap">
 {
   "imports": {
@@ -103,22 +113,25 @@
 }
 </script>
 </head>
-  <body>
-    <div id="root"></div>
-    <script>
-      // Check if the browser supports Service Workers.
-      if ('serviceWorker' in navigator) {
-        // Register the Service Worker after the page has finished loading to avoid contention for resources.
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-              console.log('Service Worker registered successfully with scope:', registration.scope);
-            })
-            .catch(error => {
-              console.error('Service Worker registration failed:', error);
-            });
-        });
-      }
-    </script>
-  </body>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+  <script>
+    // Check if the browser supports Service Workers.
+    if ('serviceWorker' in navigator) {
+      // Register the Service Worker after the page has finished loading to avoid contention for resources.
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('Service Worker registered successfully with scope:', registration.scope);
+          })
+          .catch(error => {
+            console.error('Service Worker registration failed:', error);
+          });
+      });
+    }
+  </script>
+</body>
+
 </html>

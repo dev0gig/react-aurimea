@@ -1,0 +1,18 @@
+{
+    "name": "AuriMea - Personal Finance Tracker",
+    "short_name": "AuriMea",
+    "description": "Progressive Web App für persönliches Finanzmanagement",
+    "start_url": "./",
+    "scope": "./",
+    "display": "standalone",
+    "background_color": "#10101A",
+    "theme_color": "#A6F787",
+    "icons": [
+        {
+            "src": "https://cdn-icons-png.flaticon.com/512/10106/10106199.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}

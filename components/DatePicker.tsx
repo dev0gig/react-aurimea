@@ -123,7 +123,7 @@ const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, className }) =
             </div>
 
             {isOpen && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-brand-surface-alt border border-brand-surface rounded-lg shadow-xl z-50 p-4">
+                <div className="absolute bottom-full left-0 right-0 mb-2 bg-brand-surface-alt border border-brand-surface rounded-lg shadow-xl z-50 p-4">
                     <div className="flex items-center justify-between mb-4">
                         <button
                             type="button"

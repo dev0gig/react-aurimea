@@ -141,8 +141,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
   const categoryOptions = transactionType === 'income' ? incomeCategories : expenseCategories;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-brand-surface-alt p-8 rounded-3xl w-full max-w-md shadow-2xl m-4" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center z-50 overflow-y-auto py-8" onClick={onClose}>
+      <div className="bg-brand-surface-alt p-8 rounded-3xl w-full max-w-md shadow-2xl m-4 my-8" onClick={e => e.stopPropagation()}>
         <h2 className="text-2xl font-bold mb-6 text-white">Neue Transaktion</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

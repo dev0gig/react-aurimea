@@ -13,7 +13,6 @@ import ConfirmationModal from './components/ConfirmationModal';
 import SettingsModal from './components/SettingsModal';
 import EditCardModal from './components/EditCardModal';
 import MobileNav from './components/MobileNav';
-import Footer from './components/Footer';
 import type { Card, Transaction } from './data/mockData';
 
 const MainContent: React.FC = () => {
@@ -414,7 +413,6 @@ const MainContent: React.FC = () => {
         message="Dies kann nicht rückgängig gemacht werden. Alle Konten und Transaktionen werden gelöscht."
         confirmText="Alles löschen"
       />
-      <Footer />
     </div>
   );
 };

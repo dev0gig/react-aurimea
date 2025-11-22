@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import type { Card, Transaction } from '../data/mockData';
+import DatePicker from './DatePicker';
 
 interface AddTransactionModalProps {
   isOpen: boolean;
@@ -38,24 +39,24 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
   const [isFixedCost, setIsFixedCost] = useState(false);
   const [billingDay, setBillingDay] = useState('');
   const [frequency, setFrequency] = useState<'monthly' | 'bimonthly' | 'quarterly' | 'semi-annually' | 'annually'>('monthly');
-  
+
   useEffect(() => {
     if (isOpen) {
-        // Reset form on open
-        const now = new Date();
-        const viennaDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Vienna' });
-        
-        setName('');
-        setAmount('');
-        setDate(viennaDateStr);
-        setTransactionType('expense');
-        setCategory(expenseCategories[0]);
-        setCardId(preselectedCardId || (cards.length > 0 ? cards[0].id : ''));
-        setDestinationCardId('');
-        setError('');
-        setIsFixedCost(false);
-        setBillingDay('');
-        setFrequency('monthly');
+      // Reset form on open
+      const now = new Date();
+      const viennaDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Europe/Vienna' });
+
+      setName('');
+      setAmount('');
+      setDate(viennaDateStr);
+      setTransactionType('expense');
+      setCategory(expenseCategories[0]);
+      setCardId(preselectedCardId || (cards.length > 0 ? cards[0].id : ''));
+      setDestinationCardId('');
+      setError('');
+      setIsFixedCost(false);
+      setBillingDay('');
+      setFrequency('monthly');
     }
   }, [isOpen, preselectedCardId, cards]);
 
@@ -72,18 +73,18 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
 
 
   useEffect(() => {
-      if (isFixedCost && date && !billingDay) {
-        const day = new Date(date).getDate();
-        setBillingDay(String(day));
-      }
+    if (isFixedCost && date && !billingDay) {
+      const day = new Date(date).getDate();
+      setBillingDay(String(day));
+    }
   }, [isFixedCost, date, billingDay]);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (/^[\d.,]*$/.test(value)) {
-        if ((value.match(/[,.]/g) || []).length <= 1) {
-            setAmount(value);
-        }
+      if ((value.match(/[,.]/g) || []).length <= 1) {
+        setAmount(value);
+      }
     }
   };
 
@@ -108,17 +109,17 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
         return;
       }
     }
-    
+
     let finalBillingDay: number | undefined = undefined;
     if (isFixedCost) {
-        const parsedBillingDay = parseInt(billingDay, 10);
-        if (!parsedBillingDay || parsedBillingDay < 1 || parsedBillingDay > 31) {
-            setError('Bitte geben Sie einen gültigen Abrechnungstag (1-31) an.');
-            return;
-        }
-        finalBillingDay = parsedBillingDay;
+      const parsedBillingDay = parseInt(billingDay, 10);
+      if (!parsedBillingDay || parsedBillingDay < 1 || parsedBillingDay > 31) {
+        setError('Bitte geben Sie einen gültigen Abrechnungstag (1-31) an.');
+        return;
+      }
+      finalBillingDay = parsedBillingDay;
     }
-    
+
     onAddTransaction({
       name,
       amount: parsedAmount,
@@ -132,7 +133,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
       frequency: isFixedCost ? frequency : undefined,
     });
   };
-  
+
   if (!isOpen) {
     return null;
   }
@@ -154,9 +155,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
                     type="button"
                     key={typeValue}
                     onClick={() => setTransactionType(typeValue)}
-                    className={`flex-1 px-3 py-1.5 text-sm rounded-full transition-colors duration-300 ${
-                      transactionType === typeValue ? 'bg-white text-black font-semibold' : 'text-brand-text-secondary hover:text-white'
-                    }`}
+                    className={`flex-1 px-3 py-1.5 text-sm rounded-full transition-colors duration-300 ${transactionType === typeValue ? 'bg-white text-black font-semibold' : 'text-brand-text-secondary hover:text-white'
+                      }`}
                   >
                     {type}
                   </button>
@@ -164,7 +164,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
               })}
             </div>
           </div>
-          
+
           {(transactionType === 'expense' || transactionType === 'transfer') && (
             <div className="flex items-center gap-3 py-2 -mt-2 mb-2">
               <input
@@ -179,7 +179,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
               </label>
             </div>
           )}
-          
+
           <div>
             <label htmlFor="transNameAdd" className="block text-sm font-medium text-brand-text-secondary mb-1">Name</label>
             <input
@@ -203,101 +203,99 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ isOpen, onClo
               className="w-full bg-brand-surface p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white"
             />
           </div>
-          
-           <div>
-             <label htmlFor="transSourceCardAdd" className="block text-sm font-medium text-brand-text-secondary mb-1">{transactionType === 'transfer' ? 'Übertrag von' : 'Konto'}</label>
-             <select
-                 id="transSourceCardAdd"
-                 value={cardId}
-                 onChange={e => setCardId(Number(e.target.value))}
-                 className="w-full bg-brand-surface p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white appearance-none"
-             >
-                 {cards.map(card => (
-                     <option key={card.id} value={card.id}>
-                         {card.title}
-                     </option>
-                 ))}
-             </select>
-         </div>
+
+          <div>
+            <label htmlFor="transSourceCardAdd" className="block text-sm font-medium text-brand-text-secondary mb-1">{transactionType === 'transfer' ? 'Übertrag von' : 'Konto'}</label>
+            <select
+              id="transSourceCardAdd"
+              value={cardId}
+              onChange={e => setCardId(Number(e.target.value))}
+              className="w-full bg-brand-surface p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white appearance-none"
+            >
+              {cards.map(card => (
+                <option key={card.id} value={card.id}>
+                  {card.title}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {transactionType === 'transfer' && (
             <div>
-                <label htmlFor="transDestinationCardAdd" className="block text-sm font-medium text-brand-text-secondary mb-1">Übertrag an</label>
-                <select
-                    id="transDestinationCardAdd"
-                    value={destinationCardId}
-                    onChange={e => setDestinationCardId(Number(e.target.value))}
-                    className="w-full bg-brand-surface p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white appearance-none"
-                >
-                    <option value="" disabled>Zielkonto auswählen...</option>
-                    {cards.filter(c => c.id !== cardId).map(card => (
-                        <option key={card.id} value={card.id}>
-                            {card.title}
-                        </option>
-                    ))}
-                </select>
+              <label htmlFor="transDestinationCardAdd" className="block text-sm font-medium text-brand-text-secondary mb-1">Übertrag an</label>
+              <select
+                id="transDestinationCardAdd"
+                value={destinationCardId}
+                onChange={e => setDestinationCardId(Number(e.target.value))}
+                className="w-full bg-brand-surface p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white appearance-none"
+              >
+                <option value="" disabled>Zielkonto auswählen...</option>
+                {cards.filter(c => c.id !== cardId).map(card => (
+                  <option key={card.id} value={card.id}>
+                    {card.title}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 
           {isFixedCost ? (
-             <div className="space-y-4 bg-brand-surface p-4 rounded-lg">
-                <div>
-                    <label htmlFor="transBillingDayAdd" className="block text-sm font-medium text-brand-text-secondary mb-1">Abrechnungstag im Monat</label>
-                    <input
-                      type="number"
-                      id="transBillingDayAdd"
-                      value={billingDay}
-                      onChange={e => setBillingDay(e.target.value)}
-                      placeholder="z.B., 15"
-                      min="1"
-                      max="31"
-                      className="w-full bg-brand-surface-alt p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white"
-                    />
-                </div>
-                 <div>
-                    <label htmlFor="transFrequencyAdd" className="block text-sm font-medium text-brand-text-secondary mb-1">Wiederholung</label>
-                    <select
-                        id="transFrequencyAdd"
-                        value={frequency}
-                        onChange={e => setFrequency(e.target.value as any)}
-                        className="w-full bg-brand-surface-alt p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white appearance-none"
-                    >
-                        <option value="monthly">Jeden Monat</option>
-                        <option value="bimonthly">Alle 2 Monate</option>
-                        <option value="quarterly">Vierteljährlich</option>
-                        <option value="semi-annually">Halbjährlich</option>
-                        <option value="annually">Jährlich</option>
-                    </select>
-                </div>
-             </div>
-          ) : ( transactionType !== 'transfer' &&
-             <div>
-                <label htmlFor="transCategoryAdd" className="block text-sm font-medium text-brand-text-secondary mb-1">Kategorie</label>
+            <div className="space-y-4 bg-brand-surface p-4 rounded-lg">
+              <div>
+                <label htmlFor="transBillingDayAdd" className="block text-sm font-medium text-brand-text-secondary mb-1">Abrechnungstag im Monat</label>
+                <input
+                  type="number"
+                  id="transBillingDayAdd"
+                  value={billingDay}
+                  onChange={e => setBillingDay(e.target.value)}
+                  placeholder="z.B., 15"
+                  min="1"
+                  max="31"
+                  className="w-full bg-brand-surface-alt p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white"
+                />
+              </div>
+              <div>
+                <label htmlFor="transFrequencyAdd" className="block text-sm font-medium text-brand-text-secondary mb-1">Wiederholung</label>
                 <select
-                    id="transCategoryAdd"
-                    value={category}
-                    onChange={e => setCategory(e.target.value)}
-                    className="w-full bg-brand-surface p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white appearance-none"
+                  id="transFrequencyAdd"
+                  value={frequency}
+                  onChange={e => setFrequency(e.target.value as any)}
+                  className="w-full bg-brand-surface-alt p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white appearance-none"
                 >
-                    {categoryOptions.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                    ))}
+                  <option value="monthly">Jeden Monat</option>
+                  <option value="bimonthly">Alle 2 Monate</option>
+                  <option value="quarterly">Vierteljährlich</option>
+                  <option value="semi-annually">Halbjährlich</option>
+                  <option value="annually">Jährlich</option>
                 </select>
+              </div>
+            </div>
+          ) : (transactionType !== 'transfer' &&
+            <div>
+              <label htmlFor="transCategoryAdd" className="block text-sm font-medium text-brand-text-secondary mb-1">Kategorie</label>
+              <select
+                id="transCategoryAdd"
+                value={category}
+                onChange={e => setCategory(e.target.value)}
+                className="w-full bg-brand-surface p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white appearance-none"
+              >
+                {categoryOptions.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
             </div>
           )}
 
           <div>
             <label htmlFor="transDateAdd" className="block text-sm font-medium text-brand-text-secondary mb-1">Datum</label>
-            <input
-              type="date"
-              id="transDateAdd"
+            <DatePicker
               value={date}
-              onChange={e => setDate(e.target.value)}
+              onChange={setDate}
               className="w-full bg-brand-surface p-3 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-purple-400 text-white"
             />
           </div>
-          
-           {error && <p className="text-sm text-brand-accent-red">{error}</p>}
+
+          {error && <p className="text-sm text-brand-accent-red">{error}</p>}
           <div className="flex items-center justify-end gap-4 pt-4">
             <button type="button" onClick={onClose} className="text-brand-text-secondary hover:text-white px-4 py-2 rounded-full transition-colors">
               Abbrechen

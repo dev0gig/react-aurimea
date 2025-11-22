@@ -1,20 +1,40 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# AuriMea
 
-# Run and deploy your AI Studio app
+Run and deploy your AI Studio app
 
-This contains everything you need to run your app locally.
+This repository contains everything you need to run the AuriMea finance dashboard locally and deploy it as a PWA.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1t_9UGY-OV5FZ5G92tOEcsyed34TniWXb
+## Features
+
+- **Progressive Web App** with offline support.
+- **Dynamic Settings Modal** with a **Credits** button that reveals a list of used resources:
+  - Favicon/PWA Icon (Flaticon)
+  - Global font: Ubuntu
+  - Icons: Google Fonts Material Symbols
+  - Entire site built with Vibe Coding and Gemini AI
+- **Footer removed** to provide a cleaner UI.
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
-
+**Prerequisites:** Node.js
 
 1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+   ```bash
+   npm install
+   ```
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key.
 3. Run the app:
-   `npm run dev`
+   ```bash
+   npm run dev
+   ```
+
+## Deploy
+
+Deploy to GitHub Pages with:
+```bash
+npm run deploy
+```
+
+## License
+
+MIT
